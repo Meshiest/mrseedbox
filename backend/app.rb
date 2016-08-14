@@ -400,7 +400,8 @@ class Server  < Sinatra::Base
       updateUserStatus session[:user_id]
       session.delete(:user_id)
     else
-    redirect to('/')
+      redirect to('/')
+    end
   end
 
   get "/auth" do
