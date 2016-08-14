@@ -1,0 +1,3 @@
+#!/bin/bash
+docker exec -it mrseedbox_backend_1 kill 1 
+docker logs -f mrseedbox_backend_1 

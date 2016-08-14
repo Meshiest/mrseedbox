@@ -1,0 +1,10 @@
+common.env
+docker-compose.yml
+transmission/info/*
+transmission/downloads/*
+transmission/complete/*
+transmission/incomplete/*
+transmission/watch-dir/*
+mysql/*
+backend/key.pem
+backend/cert.crt

@@ -1,0 +1,2 @@
+#!/bin/bash
+docker exec -it mrseedbox_db_1 mysql -u mrseedbox --password=mrseedbox --database=mrseedbox

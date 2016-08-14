@@ -1,0 +1,33 @@
+db:
+  image: mysql
+  restart: always
+  volumes:
+    - ./mysql:/var/lib/mysql
+  env_file: 
+    - ./common.env
+  expose:
+    - "3306"
+
+transmission:
+  image: dperson/transmission
+  restart: always
+  volumes:
+    - ./transmission:/var/lib/transmission-daemon
+  env_file: 
+    - ./common.env
+  expose:
+    - "9091"
+
+backend:
+  build: "./backend"
+  command: "rackup"
+  restart: always
+  env_file: 
+    - ./common.env
+  volumes:
+    - ./backend:/app
+  ports:
+    - "443:443"
+  links:
+    - db:mysql
+    - transmission:transmission
