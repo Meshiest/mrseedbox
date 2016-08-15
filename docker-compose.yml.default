@@ -9,14 +9,22 @@ db:
     - "3306"
 
 transmission:
-  image: dperson/transmission
+  image: linuxserver/transmission
   restart: always
   volumes:
-    - ./transmission:/var/lib/transmission-daemon
-  env_file: 
-    - ./common.env
+    - ./transmission/config:/config
+    - ./transmission/watch:/watch
+    - ./transmission/incomplete:/incomplete
+    - ./transmission/downloads:/downloads
   expose:
     - "9091"
+  environment:
+    PGID: 1000 # get 'gid' from `id <yourusername>`
+    PUID: 1000 # get 'uid' from `id <yourusername>`
+  ports:
+    - "9091:9091"
+    - "51413:51413"
+    - "51413:51413/udp"
 
 backend:
   build: "./backend"
