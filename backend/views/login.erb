@@ -1,9 +1,68 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>MrSeedbox - Login</title>
-</head>
-<body>
-<a href='/auth'>Login</a>
-</body>
+  <head>
+    <title>Greeting</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(#fefefe,#dedede);
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signin-button {
+  width: 20vh;
+  height: 20vh;
+  background: #0ae;
+  border: thin solid #049;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: background-color 0.5s, box-shadow 0.5s;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signin-button:hover {
+  background: #09d;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  transition: background-color 0.5s, box-shadow 0.5s;
+}
+
+.signin-button:hover #unlocked {
+  display: none;
+}
+
+.signin-button:not(:hover) #locked {
+  display: none;
+}
+
+.signin-text i {
+  font-size: 10vh;
+  color: #fff;
+}
+
+    </style>
+  </head>
+  <body>
+    <div class='signin-button' onclick='location.href="/auth"'>
+      <div class='signin-text'>
+        <i class='material-icons' id='locked'>lock_open</i>
+        <i class='material-icons' id='unlocked'>lock_outline</i>
+      </div>
+    </div>
+  </body>
 </html>

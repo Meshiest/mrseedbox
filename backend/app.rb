@@ -172,21 +172,14 @@ def addUserToDb email, name, level
     puts "Adding #{email} to database with level #{level}"
     $mysql.query("INSERT INTO users (email, name, level, create_time) VALUES ('#{email}', '#{name}', #{level}, #{Time.now.to_i});")
     return $mysql.query("SELECT * FROM users WHERE email='#{email}';").first
-  rescue Mysql2::Error => e
-    puts "ERROR IN ADDING USER",$!.backtrace
-    puts e.errno
-    puts e.error
-    return nil
+  rescue
   end
 end
 
 def updateUserStatus user_id
   begin
     $mysql.query("UPDATE users SET last_online=#{Time.now.to_i} WHERE id=#{user_id};")
-  rescue Mysql2::Error => e
-    puts "ERROR IN UPDATING USER STATUS",$!.backtrace
-    puts e.errno
-    puts e.error
+  rescue
   end
 end
 
@@ -235,12 +228,12 @@ class Server  < Sinatra::Base
     end
   end
 
-  get '/401' do 
-    status 401
-    {
-      status: 401,
-      message: "Not Authorized"
-    }.to_json
+  get '/401' do
+    if session[:user_id]
+      redirect to('/')
+    else
+      erb :unauth
+    end
   end
 
   # Api Routes
@@ -360,6 +353,62 @@ class Server  < Sinatra::Base
     end
   end
 
+  post '/api/torrents' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :EDIT_TORRENT
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      case params[:action]
+      when "magnet"
+        begin
+          Trans::Api::Torrent.add_magnet URI.decode(params[:url]), {paused: false}
+          status 200,
+          {
+            status: 200,
+            message: "OK",
+          }.to_json
+        rescue
+          status 500,
+          {
+            status: 500,
+            message: "Error",
+            backtrace: $!.backtrace
+          }.to_json
+        end
+      when "url"
+        begin
+          data = open(URI.decode(params[:url]), {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).read
+          data = Base64.encode64(data)
+          Trans::Api::Torrent.add_metainfo data, "api torrent by #{user_id}", {paused: false}
+          status 200,
+          {
+            status: 200,
+            message: "OK",
+          }.to_json
+        rescue
+          status 500,
+          {
+            status: 500,
+            message: "Error",
+            backtrace: $!.backtrace
+          }.to_json
+        end
+      else
+        status 404,
+        {
+          status: 404,
+          message: "Operation '#{params[:action]}' Not Found",
+        }.to_json
+      end
+    end
+  end
+
   post '/api/torrents/:id/:action' do
     user_id = session[:user_id]
     torrent = Trans::Api::Torrent.find(params[:id])
@@ -374,7 +423,7 @@ class Server  < Sinatra::Base
       status 404
       {
         status: 404,
-        message: "Not Found",
+        message: "Torrent Not Found",
       }.to_json
     else
       updateUserStatus user_id
@@ -438,6 +487,44 @@ class Server  < Sinatra::Base
     end
   end
 
+  post '/api/users' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :EDIT_USER
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      name = params[:name] || 'User'
+      level = params[:level] || 0
+      params[:]
+      validEmail = /^\A([\w+\-].?)+@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+\z$/i.match(params[:email])
+      validUser = /^[a-z0-9_-]$/i.match(name)
+      validLevel = level.class == Fixnum && level >= 0 && level <= EDIT_USER
+      if validEmail
+        emailIsUsed = $mysql.query("SELECT * FROM users WHERE email='#{params[:email]}'").size == 0
+        validEmail = false if emailIsUsed
+      end
+      unless validEmail && validUser && validLevel
+        status 422
+        {
+          status: 422,
+          message: "Invalid Parameters",
+        }.to_json
+      else
+        addUserToDb params[:email], name, level
+        status 200
+        {
+          status: 200,
+          message: "OK",
+        }.to_json
+      end
+    end
+  end
+
 
   # Auth Routes
 
@@ -445,9 +532,8 @@ class Server  < Sinatra::Base
     if session[:user_id]
       updateUserStatus session[:user_id]
       session.delete(:user_id)
-    else
-      redirect to('/')
     end
+    redirect to('/')
   end
 
   get "/auth" do
