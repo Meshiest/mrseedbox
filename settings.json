@@ -1,0 +1,28 @@
+{
+  "rpc-username": "mrseedbox",
+  "rpc-password": "mrseedbox",
+
+  "rpc-enabled": true,
+  "peer-port": 51413,
+  "port-forwarding-enabled": false,
+  "rpc-authentication-required": true,
+  "rpc-whitelist-enabled": true,
+  "rpc-whitelist": "172.17.0.*,127.0.0.*,192.168.1.*",
+
+  "upload-slots-per-torrent": 50,
+  "peer-limit-global": 400,
+  "peer-limit-per-torrent": 400,
+
+  "ratio-limit": 10,
+  "ratio-limit-enabled": true,
+
+  "download-dir": "/downloads",
+
+  "incomplete-dir-enabled": true,
+  "incomplete-dir": "/incomplete",
+
+  "watch-dir-enabled": true,
+  "watch-dir": "/watch",
+
+  "trash-original-torrent-files": true
+}

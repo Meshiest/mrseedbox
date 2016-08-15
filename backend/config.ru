@@ -2,6 +2,8 @@
 require 'rubygems'
 require 'bundler'
 Bundler.require
+
+$stdout.sync = true
  
 require File.expand_path(File.dirname(__FILE__) + '/app')
  

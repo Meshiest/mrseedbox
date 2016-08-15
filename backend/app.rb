@@ -10,6 +10,7 @@ require 'sinatra/base'
 require 'webrick'
 require 'webrick/https'
 require 'openssl'
+require 'base64'
 
 set :public_folder, File.expand_path(File.dirname(__FILE__) + '/public')
 set :sessions, true
@@ -41,7 +42,7 @@ PERMISSIONS = {
 
 TRANSMISSION_CONFIG = {
   host: 'transmission',
-  path: '/transmission/',
+  path: '/transmission/rpc',
   port: 9091,
   user: envRequire('TRANSMISSION_USER'),
   pass: envRequire('TRANSMISSION_PASS'),
@@ -92,8 +93,8 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(64) UNIQUE,
   name VARCHAR(48),
   level INT NOT NULL DEFAULT 0,
-  last_online DATE,
-  create_time DATE
+  last_online BIGINT,
+  create_time BIGINT
 );""")
 $mysql.query("""
 CREATE TABLE IF NOT EXISTS feeds (
@@ -102,7 +103,7 @@ CREATE TABLE IF NOT EXISTS feeds (
   uri VARCHAR(256),
   name VARCHAR(48) UNIQUE,
   update_duration INT,
-  lastUpdate DATE
+  last_update BIGINT
 );""")
 $mysql.query("""
 CREATE TABLE IF NOT EXISTS listeners (
@@ -115,7 +116,7 @@ $mysql.query("""
 CREATE TABLE IF NOT EXISTS user_listeners (
   user_id INT NOT NULL,
   feed_id INT NOT NULL,
-  last_seen DATE
+  last_seen BIGINT
 );""")
 
 $firstUser = $mysql.query("SELECT COUNT(*) FROM users").first["COUNT(*)"] == 0
@@ -123,10 +124,53 @@ if $firstUser
   puts "First user to sign in will be made the owner."
 end
 
+# feed loop
+Thread.start {
+  loop {
+    puts "Updating Feeds"
+    begin
+      feeds = $mysql.query("SELECT * FROM feeds;")
+      to_add = []
+      now = Time.now.to_i
+      feeds.each do |feed|
+        if feed['update_duration'] * 60 * 1000 + feed['last_update'] > now
+          $mysql.query("UPDATE feeds SET last_update=#{now} WHERE id=#{feed['id']};")
+          begin
+            feedData = RSS::Parser.parse(feed['uri'])
+            $mysql.query("SELECT * FROM listeners WHERE feed_id=#{feed['id']};").each do |listener|
+              pattern = /#{listener['pattern']}/
+              feedData.items.each do |item|
+                updateTime = item.pubDate.to_i
+                if pattern.match(item.title) && updateTime >= feed['last_update']
+                  to_add << item.link
+                end
+              end
+            end
+          rescue
+            puts "Error in feed #{feed['id']}", $!.backtrace
+          end
+        end
+      end
+      to_add.uniq!
+      to_add.each do |link|
+        begin
+          puts "Adding #{link}"
+          data = open(link, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).read
+          data = Base64.encode64(data)
+          Trans::Api::Torrent.add_metainfo data, 'rss torrent', {paused: false}
+        rescue
+        end
+      end
+    rescue
+    end
+    sleep 15 * 60
+  }
+}
+
 def addUserToDb email, name, level
   begin
     puts "Adding #{email} to database with level #{level}"
-    $mysql.query("INSERT INTO users (email, name, level, create_time) VALUES ('#{email}', '#{name}', #{level}, '#{Time.now.to_s.split(' ')[0..1]*' '}');")
+    $mysql.query("INSERT INTO users (email, name, level, create_time) VALUES ('#{email}', '#{name}', #{level}, #{Time.now.to_i});")
     return $mysql.query("SELECT * FROM users WHERE email='#{email}';").first
   rescue Mysql2::Error => e
     puts "ERROR IN ADDING USER",$!.backtrace
@@ -138,7 +182,7 @@ end
 
 def updateUserStatus user_id
   begin
-    $mysql.query("INSERT INTO users SET (last_online) VALUES ('#{Time.now.to_s.split(' ')[0..1]*' '}');")
+    $mysql.query("UPDATE users SET last_online=#{Time.now.to_i} WHERE id=#{user_id};")
   rescue Mysql2::Error => e
     puts "ERROR IN UPDATING USER STATUS",$!.backtrace
     puts e.errno
@@ -302,10 +346,12 @@ class Server  < Sinatra::Base
         torrents << {
           id: torrent.id,
           name: torrent.name,
-          status: torrent.status,
-          files: torrent.files.map{|f|{
+          state: torrent.status,
+          status: torrent.status_name,
+          files: torrent.files_objects.map{|f|{
               name: f.name,
-              stat: f.stat,
+              downloaded: f.bytes_completed,
+              total: f.bytes_total,
             }
           },
         }
