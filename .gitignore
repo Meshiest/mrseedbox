@@ -1,8 +1,8 @@
 common.env
 docker-compose.yml
 !transmission/config/settings.json
-transmission/*
-mysql/*
+transmission/**
+mysql/**
 !mysql
 backend/key.pem
 backend/cert.crt
