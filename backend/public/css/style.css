@@ -1,0 +1,17 @@
+md-sidenav {
+  fill: #737373;
+}
+
+body, html {
+  overflow: hidden;
+}
+
+body, html, .bg {
+  background: linear-gradient(#eee,#ccc);
+  background: -webkit-linear-gradient(#eee,#ccc);
+}
+
+md-sidenav ng-md-icon {
+  position: relative;
+  top: 5px;
+}

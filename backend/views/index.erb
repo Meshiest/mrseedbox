@@ -1,10 +1,61 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Home</title>
-</head>
-<body>
-USER ID:  <%= session[:user_id] %>
-<a href='/logout'>Logout</a>
-</body>
+<html lang='en' ng-app='SeedboxApp'>
+  <head>
+    <title>Home</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ef6c00" />
+
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=RobotoDraft:300,400,500,700,400italic" /> 
+    <link rel="stylesheet" type="text/css" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0-rc2/angular-material.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <link rel="stylesheet" type="text/css" href="/css/style.css" />
+  </head>
+  <body ng-controller='AppCtrl' ng-cloak layout='row'>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular-animate.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular-aria.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular-messages.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular-route.min.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0-rc2/angular-material.min.js"></script>
+
+    <script src='/js/app.js'></script>
+
+    <md-sidenav layout='column' class='md-sidenav-left md-whiteframe-z2' md-component-id='nav' md-is-locked-open="$mdMedia('gt-md')">
+      <md-toolbar class='md-tall md-hue-2'>
+        <div class='md-toolbar-tools-bottom inset' layout='column'>
+          <div>User <%= session[:user_id] %></div>
+        </div>
+      </md-toolbar>
+
+      <md-list style='overflow-y: auto;'>
+        <md-list-item ng-repeat="item in menu" ng-click="setPath(item.path)">
+          <md-icon>{{item.icon}}</md-icon>
+          <p>{{item.title}}</p>
+        </md-list-item>
+
+        <md-list-item ng-href="/logout">
+          <md-icon>exit_to_app</md-icon>
+          <p>Logout</p>
+        </md-list-item>
+      </md-list>
+    </md-sidenav>
+
+    <md-content layout='column' layout-fill class='bg'>
+      <md-toolbar layout="column" class='md-whiteframe-z1'>
+        <div class='md-toolbar-tools'>
+          <md-button class="md-icon-button" ng-click="toggleSideNav('nav')" hide-gt-md aria-label="Menu">
+            <md-icon>menu</md-icon>
+          </md-button>
+
+          <h2>{{title}}</h2>
+          <span flex></span>
+        </div>
+      </md-toolbar>
+
+      <div ng-view ng-cloak style='overflow: auto;'>
+      </div>
+    </md-content>
+
+  </body>
 </html>

@@ -12,9 +12,6 @@ require 'webrick/https'
 require 'openssl'
 require 'base64'
 
-set :public_folder, File.expand_path(File.dirname(__FILE__) + '/public')
-set :sessions, true
-
 
 def envRequire name
   unless ENV[name]
@@ -127,7 +124,6 @@ end
 # feed loop
 Thread.start {
   loop {
-    puts "Updating Feeds"
     begin
       feeds = $mysql.query("SELECT * FROM feeds;")
       to_add = []
@@ -216,7 +212,7 @@ server_options = {
   :SSLPrivateKey => OpenSSL::PKey::RSA.new(key_content)
 }
 
-class Server  < Sinatra::Base
+class Server < Sinatra::Base
   set :json_content_type, :json
   set :sessions, true
 
@@ -500,7 +496,6 @@ class Server  < Sinatra::Base
       updateUserStatus user_id
       name = params[:name] || 'User'
       level = params[:level] || 0
-      params[:]
       validEmail = /^\A([\w+\-].?)+@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+\z$/i.match(params[:email])
       validUser = /^[a-z0-9_-]$/i.match(name)
       validLevel = level.class == Fixnum && level >= 0 && level <= EDIT_USER
