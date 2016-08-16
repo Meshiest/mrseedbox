@@ -250,22 +250,29 @@ class Server < Sinatra::Base
     else
       status 200
       updateUserStatus user_id
-      torrents = []
-      Trans::Api::Torrent.all.each do |torrent|
-        torrents << {
-          id: torrent.id,
-          name: torrent.name,
-          state: torrent.status,
-          status: torrent.status_name,
-          files: torrent.files_objects.map{|f|{
-              name: f.name,
-              downloaded: f.bytes_completed,
-              total: f.bytes_total,
-            }
-          },
-        }
+      now = Time.now.to_i
+      if !@lastTorrentTime || @lastTorrentTime && @lastTorrentTime + 1.5 < now
+        torrents = []
+        @lastTorrentTime = now
+        Trans::Api::Torrent.all.each do |torrent|
+          torrents << {
+            id: torrent.id,
+            name: torrent.name,
+            state: torrent.status,
+            status: torrent.status_name,
+            files: torrent.files_objects.map{|f|{
+                name: f.name,
+                downloaded: f.bytes_completed,
+                total: f.bytes_total,
+              }
+            },
+          }
+        end
+        @lastTorrent = torrents
+        return torrents.to_json
+      else 
+        return @lastTorrent.to_json
       end
-      torrents.to_json
     end
   end
 
@@ -302,13 +309,13 @@ class Server < Sinatra::Base
           data = open(URI.decode(params[:url]), {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).read
           data = Base64.encode64(data)
           Trans::Api::Torrent.add_metainfo data, "api torrent by #{user_id}", {paused: false}
-          status 200,
+          status 200
           {
             status: 200,
             message: "OK",
           }.to_json
         rescue
-          status 500,
+          status 500
           {
             status: 500,
             message: "Error",
@@ -316,7 +323,7 @@ class Server < Sinatra::Base
           }.to_json
         end
       else
-        status 404,
+        status 404
         {
           status: 404,
           message: "Operation '#{params[:action]}' Not Found",
@@ -347,13 +354,13 @@ class Server < Sinatra::Base
       when "start"
         begin
           torrent.start!
-          status 200,
+          status 200
           {
             status: 200,
             message: "OK",
           }.to_json
         rescue
-          status 500,
+          status 500
           {
             status: 500,
             message: "Error",
@@ -363,13 +370,13 @@ class Server < Sinatra::Base
       when "stop"
         begin
           torrent.stop!
-          status 200,
+          status 200
           {
             status: 200,
             message: "OK",
           }.to_json
         rescue
-          status 500,
+          status 500
           {
             status: 500,
             message: "Error",
@@ -379,13 +386,13 @@ class Server < Sinatra::Base
       when "delete"
         begin
           torrent.delete!({delete_local_data: true})
-          status 200,
+          status 200
           {
             status: 200,
             message: "OK",
           }.to_json
         rescue
-          status 500,
+          status 500
           {
             status: 500,
             message: "Error",
@@ -393,7 +400,7 @@ class Server < Sinatra::Base
           }.to_json
         end
       else
-        status 404,
+        status 404
         {
           status: 404,
           message: "Operation '#{params[:action]}' Not Found",

@@ -1,0 +1,38 @@
+<div>
+  <md-card ng-repeat='torrent in torrents' layout='column'>
+    <md-toolbar md-theme='status_{{torrent.status}}'>
+      <div class='md-toolbar-tools'>
+        {{torrent.name}}
+      </div>
+    </md-toolbar>
+    <md-progress-linear md-theme="status_seeding" md-mode="determinate" value="{{getProgress(torrent)}}"></md-progress-linear>
+  </md-card>
+</div>
+
+<div style='position: absolute; bottom: 1em; right: 1em;'>
+  <md-fab-speed-dial md-open='isOpen' class='md-fling' md-direction='left'>
+    <md-fab-trigger>
+      <md-button aria-label='menu' class='md-fab md-accent'>
+        <md-icon>add</md-icon>
+      </md-button>
+    </md-fab-trigger>
+    <md-fab-actions>
+      <md-button class='md-fab md-raised md-mini' ng-click='showLinkDialog($event,"magnet")'>
+        <md-icon>
+          link
+        </md-icon>
+        <md-tooltip>
+          Magnet Link
+        </md-tooltip>
+      </md-button>
+      <md-button class='md-fab md-raised md-mini' ng-click='showLinkDialog($event,"url")'>
+        <md-icon>
+          attach_file
+        </md-icon>
+        <md-tooltip>
+          Torrent File Link
+        </md-tooltip>
+      </md-button>
+    </md-fab-actions>
+  </md-fab-speed-dial>
+</div>

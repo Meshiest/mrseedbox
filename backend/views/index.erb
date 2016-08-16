@@ -11,6 +11,9 @@
     <link rel="stylesheet" type="text/css" href="/css/style.css" />
   </head>
   <body ng-controller='AppCtrl' ng-cloak layout='row'>
+    <script>
+      window.user_id = <%= session[:user_id] %>;
+    </script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular-animate.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular-aria.min.js"></script>
@@ -23,7 +26,8 @@
 
     <md-sidenav layout='column' class='md-sidenav-left md-whiteframe-z2' md-component-id='nav' md-is-locked-open="$mdMedia('gt-md')">
       <md-toolbar class='md-tall md-hue-2'>
-        <div class='md-toolbar-tools-bottom inset' layout='column'>
+        <span flex></span>
+        <div layout='column' class='md-toolbar-tools-bottom inset'>
           <div>User <%= session[:user_id] %></div>
         </div>
       </md-toolbar>
