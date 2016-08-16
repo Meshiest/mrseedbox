@@ -26,7 +26,9 @@
     })
   })
 
-  app.controller('AppCtrl', function($scope, $mdMedia, $location, $mdSidenav) {
+  app.controller('AppCtrl', function($scope, $mdMedia, $location, $mdSidenav, $http) {
+    $scope.http = $http
+    
     $scope.setPath = function (path) {
       $location.path(path)
     }
