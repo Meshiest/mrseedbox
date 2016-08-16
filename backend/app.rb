@@ -25,14 +25,16 @@ EDITOR_LEVEL = 2
 MEMBER_LEVEL = 1
 VISITOR_LEVEL = 0
 PERMISSIONS = {
-  EDIT_USER:     3,
-  READ_USER:     1,
-  EDIT_FEED:     2,
-  READ_FEED:     0,
-  EDIT_LISTENER: 1,
-  READ_LISTENER: 0,
-  EDIT_TORRENT:  1,
-  READ_TORRENT:  0,
+  EDIT_USER:         3,
+  READ_USER:         1,
+  EDIT_FEED:         2,
+  READ_FEED:         0,
+  EDIT_LISTENER:     1,
+  READ_LISTENER:     0,
+  EDIT_TORRENT:      1,
+  READ_TORRENT:      0,
+  EDIT_SUBSCRIPTION: 0,
+  READ_SUBSCRIPTION: 0,
 }
 
 # transmission client
@@ -234,89 +236,7 @@ class Server < Sinatra::Base
 
   # Api Routes
 
-  get '/api/users' do
-    user_id = session[:user_id]
-    content_type :json
-    if !hasPerm user_id, :READ_USER
-      status 401
-      {
-        status: 401,
-        message: "Not Authorized"
-      }.to_json
-    else
-      status 200
-      updateUserStatus user_id
-      result = $mysql.query("SELECT * FROM users;")
-      users = []
-      result.each do |user|
-        users << user
-      end
-      users.to_json
-    end
-  end
-
-  get '/api/feeds' do
-    user_id = session[:user_id]
-    content_type :json
-    if !hasPerm user_id, :READ_FEED
-      status 401
-      {
-        status: 401,
-        message: "Not Authorized"
-      }.to_json
-    else
-      status 200
-      updateUserStatus user_id
-      result = $mysql.query("SELECT * FROM feeds;")
-      feeds = []
-      result.each do |feed|
-        feeds << feed
-      end
-      feeds.to_json
-    end
-  end
-
-  get '/api/listeners' do
-    user_id = session[:user_id]
-    content_type :json
-    if !hasPerm user_id, :READ_LISTENER
-      status 401
-      {
-        status: 401,
-        message: "Not Authorized"
-      }.to_json
-    else
-      status 200
-      updateUserStatus user_id
-      result = $mysql.query("SELECT * FROM listeners;")
-      listeners = []
-      result.each do |listener|
-        listeners << listener
-      end
-      listeners.to_json
-    end
-  end
-
-  get '/api/user/listeners' do
-    user_id = session[:user_id]
-    content_type :json
-    if !hasPerm user_id, :READ_LISTENER
-      status 401
-      {
-        status: 401,
-        message: "Not Authorized"
-      }.to_json
-    else
-      status 200
-      updateUserStatus user_id
-      result = $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id};")
-      listeners = []
-      result.each do |listener|
-        listeners << listener
-      end
-      listeners.to_json
-    end
-  end
+  # torrents api
 
   get '/api/torrents' do
     user_id = session[:user_id]
@@ -485,6 +405,27 @@ class Server < Sinatra::Base
 
   # user api
 
+  get '/api/users' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :READ_USER
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    else
+      status 200
+      updateUserStatus user_id
+      result = $mysql.query("SELECT * FROM users;")
+      users = []
+      result.each do |user|
+        users << user
+      end
+      users.to_json
+    end
+  end
+
   post '/api/users' do
     user_id = session[:user_id]
     content_type :json
@@ -626,6 +567,27 @@ class Server < Sinatra::Base
 
   # listener api
 
+  get '/api/listeners' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :READ_LISTENER
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    else
+      status 200
+      updateUserStatus user_id
+      result = $mysql.query("SELECT * FROM listeners;")
+      listeners = []
+      result.each do |listener|
+        listeners << listener
+      end
+      listeners.to_json
+    end
+  end
+
   post '/api/listeners' do
     user_id = session[:user_id]
     content_type :json
@@ -758,6 +720,27 @@ class Server < Sinatra::Base
 
   # feeds
 
+  get '/api/feeds' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :READ_FEED
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    else
+      status 200
+      updateUserStatus user_id
+      result = $mysql.query("SELECT * FROM feeds;")
+      feeds = []
+      result.each do |feed|
+        feeds << feed
+      end
+      feeds.to_json
+    end
+  end
+
   post '/api/feeds' do
     user_id = session[:user_id]
     content_type :json
@@ -888,6 +871,29 @@ class Server < Sinatra::Base
         status: 200,
         message: "OK",
       }.to_json
+    end
+  end
+
+  # users/listeners api
+
+  get '/api/user/listeners' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :READ_SUBSCRIPTION
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    else
+      status 200
+      updateUserStatus user_id
+      result = $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id};")
+      listeners = []
+      result.each do |listener|
+        listeners << listener
+      end
+      listeners.to_json
     end
   end
 
