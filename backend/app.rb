@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS feeds (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   creator_id INT,
   uri VARCHAR(256),
-  name VARCHAR(48) UNIQUE,
+  name VARCHAR(48),
   update_duration INT,
   last_update BIGINT
 );""")
@@ -657,7 +657,7 @@ class Server < Sinatra::Base
           message: "Invalid Parameters (Bad name or pattern)",
         }.to_json
       end
-      $mysql.query("INSERT INTO listeners (feed_id,name,pattern) VALUES (#{feed_id},'#{name}','pattern')")
+      $mysql.query("INSERT INTO listeners (feed_id,name,pattern) VALUES (#{feed_id},'#{name}','#{pattern}')")
       status 200
       {
         status: 200,
@@ -699,14 +699,14 @@ class Server < Sinatra::Base
         $mysql.query("UPDATE listeners SET name='#{params[:name]}' WHERE id=#{target_id};")
       end
       if params[:pattern]
-        unless /^[a-z0-9().*+?|\[\]-]{1,48}$/i.match(pattern)
+        unless /^[a-z0-9().*+?|\[\]-]{1,48}$/i.match(params[:pattern])
           status 422
           return {
             status: 422,
             message: "Invalid Parameters",
           }.to_json
         end
-        $mysql.query("UPDATE listeners SET pattern='#{level}' WHERE id=#{target_id};")
+        $mysql.query("UPDATE listeners SET pattern='#{params[:pattern]}' WHERE id=#{target_id};")
       end
 
       status 200
@@ -739,15 +739,150 @@ class Server < Sinatra::Base
           message: "Invalid Parameters",
         }.to_json
       end
-      target_user = 
-      unless $mysql.query("SELECT * FROM listeners WHERE id=#{target_id}").first
+      unless $mysql.query("SELECT * FROM listeners WHERE id=#{target_id};").first
         status 404
         return {
           status: 404,
           message: "Listener Not Found",
         }.to_json
       end
+
       $mysql.query("DELETE FROM listeners WHERE id=#{target_id};")
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  # feeds
+
+  post '/api/feeds' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :EDIT_FEED
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      uri = params[:url]
+      name = params[:name]
+      duration = params[:duration]
+      if duration
+        duration = duration.to_i rescue 15
+      end
+      unless name && uri && /^[a-z0-9_-]{1,256}$/i.match(name) && /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/=]*)$/i.match(uri) && name.length > 0 && name.length <= 48 && uri.length <= 256
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters (Bad name(#{/^[a-z0-9_-]{1,256}$/i.match(name)}) or uri",
+        }.to_json
+      end
+      begin 
+        parsed = RSS::Parser.parse(uri)
+      rescue
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters (URL not RSS feed)",
+        }.to_json
+      end
+      $mysql.query("INSERT INTO feeds (uri,name,update_duration,creator_id) VALUES ('#{uri}','#{name}',#{duration},#{user_id})")
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  put '/api/feeds/:id' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = params[:id].to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_FEED)
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      unless $mysql.query("SELECT * FROM feeds WHERE id=#{target_id};").first
+        status 404
+        return {
+          status: 404,
+          message: "Feed Not Found",
+        }.to_json
+      end
+      if params[:name]
+        unless /^[a-z0-9_-]{1,256}$/i.match(params[:name])
+          status 422
+          return {
+            status: 422,
+            message: "Invalid Parameters",
+          }.to_json
+        end
+        $mysql.query("UPDATE feeds SET name='#{params[:name]}' WHERE id=#{target_id};")
+      end
+      duration = params[:duration].to_i rescue nil
+      if params[:duration]
+        unless duration && duration >= 15
+          status 422
+          return {
+            status: 422,
+            message: "Invalid Parameters",
+          }.to_json
+        end
+        $mysql.query("UPDATE feeds SET update_duration=#{duration} WHERE id=#{target_id};")
+      end
+
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  delete '/api/feeds/:id' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = target_id.to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_FEED)
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      if !params[:id]
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters",
+        }.to_json
+      end
+      unless $mysql.query("SELECT * FROM feeds WHERE id=#{target_id}").first
+        status 404
+        return {
+          status: 404,
+          message: "Feed Not Found",
+        }.to_json
+      end
+      
+      $mysql.query("DELETE FROM feeds WHERE id=#{target_id};")
       status 200
       {
         status: 200,
