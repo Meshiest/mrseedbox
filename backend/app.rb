@@ -215,6 +215,7 @@ server_options = {
 }
 
 class Server < Sinatra::Base
+
   set :json_content_type, :json
   set :sessions, true
 
@@ -240,12 +241,53 @@ class Server < Sinatra::Base
     end
   end
 
-  not_found do
+  error Sinatra::NotFound do
     status 404
     erb :oops
   end
 
   # Api Routes
+
+  # files api
+
+  get '/api/files' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :READ_TORRENT
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    else 
+      status 200
+      Dir["/transmission/downloads/*"].map{|i|i[('/transmission/downloads/'.length)..-1]}.to_json
+    end
+  end
+
+  get '/api/dl' do
+    user_id = session[:user_id]
+    if !hasPerm user_id, :READ_TORRENT
+      status 401
+      content_type :json
+      return {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    end
+    file = URI.decode(params[:file])
+    files = Dir["/transmission/downloads/*"].map{|i|i[('/transmission/downloads/'.length)..-1]}
+    if files.include?(file)
+      send_file '/transmission/downloads/'+file, {:filename => "#{file}", :stream => true}
+    else
+      status 404
+      content_type :json
+      return {
+        status: 404,
+        message: "Not Found"
+      }.to_json
+    end
+  end
 
   # torrents api
 
@@ -345,7 +387,15 @@ class Server < Sinatra::Base
 
   post '/api/torrents/:id/:action' do
     user_id = session[:user_id]
-    torrent = Trans::Api::Torrent.find(params[:id])
+    id = params[:id]
+    if id
+      id = id.to_i rescue nil
+    end
+    torrent = nil
+    begin
+      torrent = Trans::Api::Torrent.find(id)
+    rescue
+    end
     content_type :json
     if !hasPerm user_id, :EDIT_TORRENT
       status 401

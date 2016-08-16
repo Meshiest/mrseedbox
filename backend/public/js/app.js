@@ -10,6 +10,7 @@
       })
       .accentPalette('red')
 
+
     $mdThemingProvider.theme('input', 'default')
       .primaryPalette('grey')
 
@@ -182,6 +183,8 @@
         }
         updateInterval = $timeout(update, 2000)
       }).error(function(err){
+        if(err.status == 401)
+          location.href='/logout'
         updateInterval = $timeout(update, 5000)
       })
 
@@ -194,6 +197,93 @@
     }
 
     update()
+
+    $scope.handleTorrent = function(torrent) {
+      if (torrent.status == "seeding" || torrent.status == "downloading" || torrent.status != "stopped") {
+        $scope.stopTorrent(torrent)
+      } else {
+        $scope.startTorrent(torrent)
+      }
+    }
+
+    $scope.startTorrent = function(torrent) {
+      $http({url: "/api/torrents/"+torrent.id+"/start", method: "POST"}).success(function(){
+        $mdToast.show(
+          $mdToast.simple()
+            .textContent('Starting Torrent')
+            .position('bottom left')
+            .hideDelay(3000)
+        )
+        update()
+      }).error(function(err) {
+        if(err.status == 401)
+          location.href='/logout'
+
+        $mdToast.show(
+          $mdToast.simple()
+            .textContent('Error Starting Torrent: ',err.message)
+            .position('bottom left')
+            .hideDelay(3000)
+        )
+      })
+    }
+    
+    $scope.stopTorrent = function(torrent) {
+      $http({url: "/api/torrents/"+torrent.id+"/stop", method: "POST"}).success(function(){
+        $mdToast.show(
+          $mdToast.simple()
+            .textContent('Stopping Torrent')
+            .position('bottom left')
+            .hideDelay(3000)
+        )
+        update()
+      }).error(function(err) {
+        if(err.status == 401)
+          location.href='/logout'
+
+        $mdToast.show(
+          $mdToast.simple()
+            .textContent('Error Stopping Torrent: ',err.message)
+            .position('bottom left')
+            .hideDelay(3000)
+        )
+      })
+    }
+
+    $scope.removeTorrent = function(ev, torrent) {
+
+      var confirm = $mdDialog.confirm()
+        .title('Confirm Removal')
+        .textContent('Are you certain you want to remove this torrent?')
+        .ariaLabel('Confirm')
+        .targetEvent(ev)
+        .ok('Yes')
+        .cancel('No');
+      $mdDialog.show(confirm).then(function() {
+        $http({url: "/api/torrents/"+torrent.id+"/delete", method: "POST"}).success(function(){
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Removing Torrent')
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+          update()
+        }).error(function(err) {
+          if(err.status == 401)
+            location.href='/logout'
+
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Error Removing Torrent: ',err.message)
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+        })
+      }, function() {
+      });
+
+
+    }
 
     $scope.$on('$routeChangeStart', function () {
       $timeout.cancel(updateInterval)
@@ -232,6 +322,8 @@
               .hideDelay(3000)
           )
         }).error(function(err) {
+          if(err.status == 401)
+            location.href='/logout'
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error Adding Torrent: ',err.message)
@@ -303,6 +395,8 @@
         }
         updateInterval = $timeout(update, 20000)
       }).error(function(err){
+        if(err.status == 401)
+          location.href='/logout'
         updateInterval = $timeout(update, 5000)
       })
 
@@ -357,6 +451,9 @@
           )
           update()
         }).error(function(err) {
+          if(err.status == 401)
+            location.href='/logout'
+
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error '+(editing?"Editing":"Adding")+' User: ',err.message)
