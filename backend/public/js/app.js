@@ -4,11 +4,11 @@
 
   app.config(function ($routeProvider, $mdThemingProvider) {
     $mdThemingProvider.theme('default')
-      .primaryPalette('orange', {
-        default: '800',
+      .primaryPalette('teal', {
+        default: '500',
         "hue-1": '50'
       })
-      .accentPalette('blue')
+      .accentPalette('red')
 
     $mdThemingProvider.theme('input', 'default')
       .primaryPalette('grey')

@@ -2,7 +2,10 @@
   <md-card ng-repeat='user in users'>
     <md-toolbar>
       <div class='md-toolbar-tools' layout='row'>
-        <div flex='15'>{{levels[user.level]}} #{{user.id}}</div>
+        <div flex='15' layout='row'>
+          {{levels[user.level]}}
+          <div style='text-align: right;' flex>#{{user.id}}</div>
+        </div>
         <div layout='column' flex='40' style='margin-left: 1em;'>
           <div>{{user.name}}</div>
           <div style='font-size: 0.5em;'>{{user.email}}</div>
