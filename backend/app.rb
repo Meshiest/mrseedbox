@@ -214,6 +214,7 @@ server_options = {
   :SSLPrivateKey => OpenSSL::PKey::RSA.new(key_content)
 }
 
+$connections = []
 class Server < Sinatra::Base
 
   set :json_content_type, :json
@@ -286,6 +287,56 @@ class Server < Sinatra::Base
         status: 404,
         message: "Not Found"
       }.to_json
+    end
+  end
+
+  # stream api
+
+  get '/api/stream', :provides => 'text/event-stream' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :READ_TORRENT
+      status 401
+      return {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    end
+    stream :keep_open do |out|
+      $connections << out
+      out.callback { $connections.delete(out) }
+    end
+  end
+
+  post '/api/stream' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :READ_TORRENT
+      status 401
+      return {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    else
+      msg = params[:msg]
+      unless msg.length > 0 && msg.length <= 256
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters",
+        }.to_json
+      else
+        payload = {
+          msg: msg,
+          user_id: user_id
+        }.to_json
+        $connections.each { |out| out << "data: #{payload}\n\n" }
+        status 200
+        return {
+          status: 200,
+          message: "OK",
+        }.to_json
+      end
     end
   end
 

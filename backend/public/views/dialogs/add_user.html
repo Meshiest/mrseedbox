@@ -2,7 +2,7 @@
   <form name='userForm'>
     <md-toolbar>
       <div class="md-toolbar-tools">
-        <h2>{{editing ? 'Update' : 'Add'}} A User</h2>
+        <h2>{{locals.editing ? 'Edit' : 'Add'}} A User</h2>
         <span flex></span>
         <md-button class="md-icon-button" ng-click="cancel()">
           <md-icon>close</md-icon>
@@ -41,7 +41,7 @@
     <md-dialog-actions layout="row">
       <span flex></span>
       <md-button ng-click="answer(locals.payload)" ng-disabled='userForm.$invalid ' class='md-primary md-raised'>
-        {{editing ? 'Update' : 'Add'}}
+        {{locals.editing ? 'Update' : 'Add'}}
       </md-button>
     </md-dialog-actions>
   </form>

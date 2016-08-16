@@ -2,7 +2,9 @@
   <md-card ng-repeat='torrent in torrents' layout='column'>
     <md-toolbar md-theme='status_{{torrent.status}}'>
       <div class='md-toolbar-tools' layout='row'>
-        {{torrent.name}}
+        <div style='font-size: 0.75em'>
+          {{torrent.name}}
+        </div>
         <span flex></span>
         <md-button class='md-icon-button' ng-if='level >= PERMISSIONS.EDIT_TORRENT' ng-click='removeTorrent($event, torrent)'>
           <md-icon>
