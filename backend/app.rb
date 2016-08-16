@@ -483,6 +483,8 @@ class Server < Sinatra::Base
     end
   end
 
+  # user api
+
   post '/api/users' do
     user_id = session[:user_id]
     content_type :json
@@ -495,19 +497,20 @@ class Server < Sinatra::Base
     else
       updateUserStatus user_id
       name = params[:name] || 'User'
-      level = params[:level] || 0
-      validEmail = /^\A([\w+\-].?)+@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+\z$/i.match(params[:email])
-      validUser = /^[a-z0-9_-]$/i.match(name)
-      validLevel = level.class == Fixnum && level >= 0 && level <= EDIT_USER
+      level = params[:level].to_i rescue nil
+      level = level || 0
+      validEmail = /^\A([\w+\-].?)+@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+\z$/i.match(params[:email]) && params[:email].length > 0 && params[:email].length <= 64
+      validUser = /^[a-z0-9_-]{0,48}$/i.match(name)
+      validLevel = level >= 0 && level <= PERMISSIONS[:EDIT_USER]
       if validEmail
-        emailIsUsed = $mysql.query("SELECT * FROM users WHERE email='#{params[:email]}'").size == 0
-        validEmail = false if emailIsUsed
+        emailIsUsed = $mysql.query("SELECT * FROM users WHERE email='#{params[:email]}';").size == 0
+        validEmail = false unless emailIsUsed
       end
       unless validEmail && validUser && validLevel
         status 422
         {
           status: 422,
-          message: "Invalid Parameters",
+          message: "Invalid Parameters (Email:#{validEmail} Name:#{validUser} Level:#{validLevel})",
         }.to_json
       else
         addUserToDb params[:email], name, level
@@ -520,6 +523,238 @@ class Server < Sinatra::Base
     end
   end
 
+  put '/api/users/:id' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = params[:id].to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_USER) || user_id == target_id
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      unless $mysql.query("SELECT * FROM users WHERE id=#{target_id}").first
+          status 404
+          return {
+            status: 404,
+            message: "User Not Found",
+          }.to_json
+      end
+      if params[:name]
+        unless /^[a-z0-9_-]{1,48}$/i.match(params[:name])
+          status 422
+          return {
+            status: 422,
+            message: "Invalid Parameters",
+          }.to_json
+        end
+        $mysql.query("UPDATE users SET name='#{params[:name]}' WHERE id=#{target_id};")
+      end
+      level = params[:level].to_i rescue nil
+      if level
+        unless level >= 0 && level <= PERMISSIONS[:EDIT_USER]
+          status 422
+          return {
+            status: 422,
+            message: "Invalid Parameters",
+          }.to_json
+        end
+        unless hasPerm(user_id, :EDIT_USER)
+          status 401
+          return {
+            status: 401,
+            message: "Not Authorized",
+          }.to_json
+        end
+        $mysql.query("UPDATE users SET level=#{level} WHERE id=#{target_id};")
+      end
+
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  delete '/api/users/:id' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = target_id.to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_USER) || user_id == target_id
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      if !params[:id]
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters",
+        }.to_json
+      end
+      target_user = $mysql.query("SELECT * FROM users WHERE id=#{target_id}").first
+      if !target_user
+        status 404
+        return {
+          status: 404,
+          message: "User Not Found",
+        }.to_json
+      end
+      $mysql.query("DELETE FROM users WHERE id=#{target_id};")
+      if $mysql.query("SELECT COUNT(*) FROM users").first["COUNT(*)"] == 0
+        $firstUser = true
+      end
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  # listener api
+
+  post '/api/listeners' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :EDIT_LISTENER
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      feed_id = params[:feed_id]
+      if feed_id
+        feed_id = feed_id.to_i rescue nil
+      end
+      unless feed_id && $mysql.query("SELECT * FROM feeds WHERE id=#{feed_id};").first
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters (Bad Feed_Id)",
+        }.to_json
+      end
+      pattern = params[:pattern] || '.'
+      name = params[:name] || "Listener for #{feed_id} #{pattern}"
+      unless /^[a-z0-9_-]{1,256}$/i.match(name) && /^[a-z0-9().*+?|\[\]-]{1,48}$/i.match(pattern)
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters (Bad name or pattern)",
+        }.to_json
+      end
+      $mysql.query("INSERT INTO listeners (feed_id,name,pattern) VALUES (#{feed_id},'#{name}','pattern')")
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  put '/api/listeners/:id' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = params[:id].to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_LISTENER)
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      unless $mysql.query("SELECT * FROM listeners WHERE id=#{target_id}").first
+        status 404
+        return {
+          status: 404,
+          message: "Listener Not Found",
+        }.to_json
+      end
+      if params[:name]
+        unless /^[a-z0-9_-]{1,256}$/i.match(params[:name])
+          status 422
+          return {
+            status: 422,
+            message: "Invalid Parameters",
+          }.to_json
+        end
+        $mysql.query("UPDATE listeners SET name='#{params[:name]}' WHERE id=#{target_id};")
+      end
+      if params[:pattern]
+        unless /^[a-z0-9().*+?|\[\]-]{1,48}$/i.match(pattern)
+          status 422
+          return {
+            status: 422,
+            message: "Invalid Parameters",
+          }.to_json
+        end
+        $mysql.query("UPDATE listeners SET pattern='#{level}' WHERE id=#{target_id};")
+      end
+
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  delete '/api/listeners/:id' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = target_id.to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_LISTENER)
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      if !params[:id]
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters",
+        }.to_json
+      end
+      target_user = 
+      unless $mysql.query("SELECT * FROM listeners WHERE id=#{target_id}").first
+        status 404
+        return {
+          status: 404,
+          message: "Listener Not Found",
+        }.to_json
+      end
+      $mysql.query("DELETE FROM listeners WHERE id=#{target_id};")
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
 
   # Auth Routes
 
