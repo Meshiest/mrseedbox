@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS listeners (
 $mysql.query("""
 CREATE TABLE IF NOT EXISTS user_listeners (
   user_id INT NOT NULL,
-  feed_id INT NOT NULL,
+  listener_id INT NOT NULL,
   last_seen BIGINT
 );""")
 
@@ -399,7 +399,6 @@ class Server < Sinatra::Base
           message: "Operation '#{params[:action]}' Not Found",
         }.to_json
       end
-
     end
   end
 
@@ -897,6 +896,117 @@ class Server < Sinatra::Base
     end
   end
 
+  post '/api/user/listeners' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :EDIT_SUBSCRIPTION
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      listener_id = params[:listener_id]
+      if listener_id
+        listener_id = listener_id.to_i rescue nil
+      end
+      unless listener_id && $mysql.query("SELECT * FROM listeners WHERE id=#{listener_id};").first
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters (Bad Listener_Id)",
+        }.to_json
+      end
+      if $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{listener_id};").first
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters (Listener already exists)",
+        }.to_json
+      end
+
+
+      $mysql.query("INSERT INTO user_listeners (user_id,listener_id) VALUES (#{user_id}, #{listener_id});")
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  put '/api/user/listeners/:id' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = params[:id].to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_SUBSCRIPTION)
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      unless $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};").first
+        status 404
+        return {
+          status: 404,
+          message: "Listener Not Found",
+        }.to_json
+      end
+      time = (!params[:time] || params[:time].length == 0) && Time.now.to_i || params[:time].to_i rescue Time.now.to_i
+      $mysql.query("UPDATE user_listeners SET last_seen=#{time} WHERE user_id=#{user_id} AND listener_id=#{target_id};")
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  delete '/api/user/listeners/:id' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = target_id.to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_SUBSCRIPTION)
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      if !params[:id]
+        status 422
+        return {
+          status: 422,
+          message: "Invalid Parameters",
+        }.to_json
+      end
+      unless $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};").first
+        status 404
+        return {
+          status: 404,
+          message: "Feed Not Found",
+        }.to_json
+      end
+      
+      $mysql.query("DELETE FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};")
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
   # Auth Routes
 
   get "/logout" do
@@ -942,9 +1052,6 @@ class Server < Sinatra::Base
       else
         redirect to('/401')
       end
-
-      #session[:access_token] = access_token.token
-      #session[:email] = email
     rescue 
       puts $!.backtrace
       redirect to('/')
