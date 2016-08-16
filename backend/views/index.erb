@@ -27,9 +27,10 @@
     <md-sidenav layout='column' class='md-sidenav-left md-whiteframe-z2' md-component-id='nav' md-is-locked-open="$mdMedia('gt-md')">
       <md-toolbar class='md-tall md-hue-2'>
         <span flex></span>
-        <div layout='column' class='md-toolbar-tools-bottom inset'>
-          <div>User <%= session[:user_id] %></div>
-        </div>
+          <div layout='column' class='md-toolbar-tools-bottom inset'>
+            <div style='font-size: 1.5em;'><%= @user['name'] %>#<%= @user['id'] %></div>
+            <div style='font-size: 0.75em;'><%= @user['email'] %></div>
+          </div>
       </md-toolbar>
 
       <md-list style='overflow-y: auto;'>

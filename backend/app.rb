@@ -220,7 +220,13 @@ class Server < Sinatra::Base
 
   get '/' do
     if session[:user_id]
-      erb :index
+      @user = $mysql.query("SELECT * FROM users WHERE id=#{session[:user_id]};").first
+      if !@user
+        session.delete(:user_id)
+        erb :login
+      else
+        erb :index
+      end
     else
       erb :login
     end
