@@ -10,7 +10,7 @@
 </div>
 
 <div style='position: absolute; bottom: 1em; right: 1em;'>
-  <md-fab-speed-dial md-open='isOpen' class='md-fling' md-direction='left'>
+  <md-fab-speed-dial md-open='isOpen' class='md-fling' md-direction='left' ng-if='level >= PERMISSIONS.EDIT_TORRENT'>
     <md-fab-trigger>
       <md-button aria-label='menu' class='md-fab md-accent'>
         <md-icon>add</md-icon>

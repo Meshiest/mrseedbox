@@ -1,0 +1,29 @@
+<div>
+  <md-card ng-repeat='user in users'>
+    <md-toolbar>
+      <div class='md-toolbar-tools' layout='row'>
+        <div flex='15'>{{levels[user.level]}} #{{user.id}}</div>
+        <div layout='column' flex='40' style='margin-left: 1em;'>
+          <div>{{user.name}}</div>
+          <div style='font-size: 0.5em;'>{{user.email}}</div>
+        </div>
+        <div layout='column' flex='30'>
+          <div style='font-size: 0.75em;'>Online {{user.last_online | ago}}</div>
+          <div style='font-size: 0.5em;'>{{(user.create_time * 1000) | date:'d MMMM yyyy'}}</div>
+        </div>
+        <span flex></span>
+        <md-button class='md-icon-button' ng-click='showUserDialog($event, user)' ng-if='level >= PERMISSIONS.EDIT_USER || user.id == id'>
+          <md-icon>
+            create
+          </md-icon>
+        </md-button>
+      </div>
+    </md-toolbar>
+  </md-card>
+</div>
+
+<div>
+  <md-button aria-label='menu' class='md-fab md-fab-bottom-right md-accent' ng-click='showUserDialog($event)'>
+    <md-icon>add</md-icon>
+  </md-button>
+</div>

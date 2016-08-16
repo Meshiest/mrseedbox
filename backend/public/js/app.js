@@ -74,6 +74,10 @@
       controller: 'TorrentCtrl',
       templateUrl: '/views/torrents.html'
     }).
+    when('/users', {
+      controller: 'UserCtrl',
+      templateUrl: '/views/users.html'
+    }).
     otherwise({
       redirectTo: '/404'
     })
@@ -90,29 +94,57 @@
       $mdSidenav(menuId).toggle()
     }
 
+    var PERMISSIONS = $scope.PERMISSIONS = {
+      EDIT_USER:         3,
+      READ_USER:         1,
+      EDIT_FEED:         2,
+      READ_FEED:         0,
+      EDIT_LISTENER:     1,
+      READ_LISTENER:     0,
+      EDIT_TORRENT:      1,
+      READ_TORRENT:      0,
+      EDIT_SUBSCRIPTION: 0,
+      READ_SUBSCRIPTION: 0,
+    }
+
+    $scope.levels = {
+      3: "Owner",
+      2: "Editor",
+      1: "Member",
+      0: "Visitor",
+    }
+
     $scope.menu = [{
       title: 'Home',
       icon: 'home',
       path: '/home',
+      perm: 0,
     }, {
       title: 'Torrents',
       icon: 'file_download',
       path: '/torrents',
+      perm: PERMISSIONS.READ_TORRENT,
     }, {
       title: 'Feeds',
       icon: 'rss_feed',
       path: '/home',
+      perm: PERMISSIONS.READ_FEED,
     }, {
       title: 'Subscriptions',
       icon: 'star_rate',
       path: '/home',
+      perm: PERMISSIONS.READ_SUBSCRIPTION,
     }, {
       title: 'Users',
       icon: 'person',
-      path: '/home',
+      path: '/users',
+      perm: PERMISSIONS.READ_USER,
     }]
 
     $scope.title = 'Mr. Seedbox'
+
+    $scope.level = window.user_level
+    $scope.id = window.user_id
   })
 
   app.controller('HomeCtrl', function($scope) {
@@ -126,6 +158,7 @@
     var updateInterval
 
     var update = function () {
+      $timeout.cancel(updateInterval)
 
       $http.get('/api/torrents').success(function(torrents){
         var map = {}
@@ -208,10 +241,133 @@
         })
       }, function() {})
     }
-
-    
-
   })
+
+  app.filter('ago', function($filter){
+    return function(time) {
+      var now = Date.now()/1000
+      var delta = now-time
+      if(!time)
+        return 'Never'
+      if(delta < 0)
+        return 'In The Future'
+      if(delta < 10)
+        return 'Now'
+      if(delta < 60)
+        return 'Moments Ago'
+      if(delta < 60 * 5)
+        return 'Minutes Ago'
+      if(delta < 60 * 30)
+        return 'Half an Hour Ago'
+      if(delta < 60 * 60)
+        return 'Almost An Hour Ago'
+      if(delta < 60 * 60 * 5)
+        return 'A Few Hours Ago'
+      if(delta < 60 * 60 * 24 * 5)
+        return 'Days Ago'
+      if(delta < 60 * 60 * 24 * 10)
+        return 'A Week Ago'
+      return $filter('date')(time * 1000, 'd MMMM yyyy')
+    }
+  })
+
+  app.controller('UserCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
+
+    $scope.users = []
+
+    var updateInterval
+
+    var update = function () {
+      $timeout.cancel(updateInterval)
+
+      $http.get('/api/users').success(function(users){
+        var map = {}
+        for(var i in $scope.users) {
+          var user = $scope.users[i]
+          user.delete_flag = true
+          map[user.id] = user
+        }
+        for(var i in users) {
+          var user = users[i]
+          var exist = map[user.id]
+          if(exist) {
+            exist.name = user.name
+            exist.email = user.email
+            exist.level = user.level
+            exist.last_online = user.last_online
+            exist.create_time = user.create_time
+            delete exist.delete_flag
+          } else {
+            $scope.users.push(user)
+          }
+        }
+        updateInterval = $timeout(update, 20000)
+      }).error(function(err){
+        updateInterval = $timeout(update, 5000)
+      })
+
+      for(var i = 0; i < $scope.users.length; i++) {
+        var user = $scope.users[i]
+        if(user.delete_flag) {
+          $scope.torrents.splice(i--, 1)
+        }
+      }
+    }
+
+    update()
+
+    $scope.$on('$routeChangeStart', function () {
+      $timeout.cancel(updateInterval)
+    })
+
+    $scope.showUserDialog = function(ev, user){
+      var editing = !!user;
+      var id;
+      var payload = {
+        name: 'User',
+        email: '',
+        level: 0,
+      }
+      if(editing) {
+        id = user.id;
+        payload = {
+          name: user.name,
+          level: user.level,
+        }
+      }
+      $mdDialog.show({
+        controller: 'DialogCtrl',
+        templateUrl: 'views/dialogs/add_user.html',
+        parent: angular.element(document.body),
+        locals: {
+          level: $scope.level,
+          PERMISSIONS: $scope.PERMISSIONS,
+          editing: editing,
+          payload: payload
+        },
+        targetEvent: ev,
+        clickOutsideToClose: true
+      }).then(function(success) {
+        $http({url: "/api/users" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent((editing?"Editing":"Adding")+' User')
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+          update()
+        }).error(function(err) {
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Error '+(editing?"Editing":"Adding")+' User: ',err.message)
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+        })
+      }, function() {})
+    }
+  })
+
   app.controller('DialogCtrl', function($scope, $http, locals, $mdDialog) {
     $scope.locals = locals
 

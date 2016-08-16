@@ -240,6 +240,11 @@ class Server < Sinatra::Base
     end
   end
 
+  not_found do
+    status 404
+    erb :oops
+  end
+
   # Api Routes
 
   # torrents api
@@ -491,7 +496,8 @@ class Server < Sinatra::Base
       }.to_json
     else
       updateUserStatus user_id
-      unless $mysql.query("SELECT * FROM users WHERE id=#{target_id}").first
+      user = $mysql.query("SELECT * FROM users WHERE id=#{target_id}").first
+      unless user
           status 404
           return {
             status: 404,
@@ -509,7 +515,7 @@ class Server < Sinatra::Base
         $mysql.query("UPDATE users SET name='#{params[:name]}' WHERE id=#{target_id};")
       end
       level = params[:level].to_i rescue nil
-      if level
+      if level && level != user['level']
         unless level >= 0 && level <= PERMISSIONS[:EDIT_USER]
           status 422
           return {

@@ -13,8 +13,9 @@
   <body ng-controller='AppCtrl' ng-cloak layout='row'>
     <script>
       window.user_id = <%= session[:user_id] %>;
+      window.user_level = <%= @user['level'] %>;
     </script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular-animate.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular-aria.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular-messages.min.js"></script>
@@ -29,12 +30,13 @@
         <span flex></span>
           <div layout='column' class='md-toolbar-tools-bottom inset'>
             <div style='font-size: 1.5em;'><%= @user['name'] %>#<%= @user['id'] %></div>
-            <div style='font-size: 0.75em;'><%= @user['email'] %></div>
+            <div style='font-size: 0.75em;'>{{levels[level]}}</div>
+            <div style='font-size: 0.5em;'><%= @user['email'] %></div>
           </div>
       </md-toolbar>
 
       <md-list style='overflow-y: auto;'>
-        <md-list-item ng-repeat="item in menu" ng-click="setPath(item.path)">
+        <md-list-item ng-repeat="item in menu" ng-if='level >= item.perm' ng-click="setPath(item.path)">
           <md-icon>{{item.icon}}</md-icon>
           <p>{{item.title}}</p>
         </md-list-item>
