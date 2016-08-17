@@ -7,7 +7,7 @@
           <div style='font-size: 0.5em'>{{feed.uri}}</div>
         </div>
         <div flex='30' layout='column'>
-          <div style='font-size: 0.75'>
+          <div style='font-size: 0.75em'>
             Updated {{feed.last_update | ago}}
           </div>
           <div style='font-size: 0.5em'>
@@ -35,11 +35,14 @@
     <md-card-content style='padding: 0;'>
       <md-list style='padding: 0;'>
         <md-list-item ng-repeat='listener in listeners' ng-if='listener.feed_id==feed.id' layout='row'>
-          <div layout='column' style='margin-left: 1em;' flex='50'>
+          <div layout='column' style='padding-left: 1em;' flex='50'>
             <div>{{listener.name}}</div>
             <div style='font-size: 0.5em;'>Pattern: /{{listener.pattern}}/i</div>
           </div>
-          <div layout='row' flex='50' layout-align='end'>
+          <div layout='column' flex='30'>
+            <div style='font-size: 0.75em;'>Updated {{listener.last_update | ago}}</div>
+          </div>
+          <div layout='row' flex='20' layout-align='end'>
             <md-button class='md-icon-button' ng-click='removeListener($event, listener)' ng-if='level >= PERMISSIONS.EDIT_LISTENER'>
               <md-icon>
               delete

@@ -561,37 +561,37 @@
         updateInterval = $timeout(update, 5000)
       })
 
-    }
+      $http.get('/api/listeners').success(function(listeners){
+        var map = {}
+        for(var i in $scope.listeners) {
+          var listener = $scope.listeners[i]
+          listener.delete_flag = true
+          map[listener.id] = listener
+        }
+        for(var i in listeners) {
+          var listener = listeners[i]
+          var exist = map[listener.id]
+          if(exist) {
+            exist.name = listener.name
+            exist.pattern = listener.pattern
+            exist.feed_id = listener.feed_id
+            delete exist.delete_flag
+          } else {
+            $scope.listeners.push(listener)
+          }
+        }
+        for(var i = 0; i < $scope.listeners.length; i++) {
+          var listener = $scope.listeners[i]
+          if(listener.delete_flag) {
+            $scope.listeners.splice(i--, 1)
+          }
+        }
+      }).error(function(err){
+        if(err.status == 401)
+          location.href='/logout'
+      })
 
-    $http.get('/api/listeners').success(function(listeners){
-      var map = {}
-      for(var i in $scope.listeners) {
-        var listener = $scope.listeners[i]
-        listener.delete_flag = true
-        map[listener.id] = listener
-      }
-      for(var i in listeners) {
-        var listener = listeners[i]
-        var exist = map[listener.id]
-        if(exist) {
-          exist.name = listener.name
-          exist.pattern = listener.pattern
-          exist.feed_id = listener.feed_id
-          delete exist.delete_flag
-        } else {
-          $scope.listeners.push(listener)
-        }
-      }
-      for(var i = 0; i < $scope.listeners.length; i++) {
-        var listener = $scope.listeners[i]
-        if(listener.delete_flag) {
-          $scope.listeners.splice(i--, 1)
-        }
-      }
-    }).error(function(err){
-      if(err.status == 401)
-        location.href='/logout'
-    })
+    }
 
 
     update()
