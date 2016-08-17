@@ -116,8 +116,8 @@
     }
 
     $scope.menu = [{
-      title: 'Home',
-      icon: 'home',
+      title: 'Chat',
+      icon: 'chat',
       path: '/home',
       perm: 0,
     }, {
@@ -146,6 +146,22 @@
 
     $scope.level = window.user_level
     $scope.id = window.user_id
+
+    $scope.messages = [];
+    $scope.canUseStream = true;
+    if (typeof(EventSource) !== "undefined") {
+     /* var source = new EventSource('/api/stream');
+
+      source.onmessage = function (event) {
+        var data = JSON.parse(event.data);
+        console.log("Message", data);
+        $scope.messages.push(data);
+        $scope.$apply();
+      }*/
+    } else {
+      $scope.canUseStream = false;
+    }
+
   })
 
   app.controller('HomeCtrl', function($scope) {
@@ -281,8 +297,6 @@
         })
       }, function() {
       });
-
-
     }
 
     $scope.$on('$routeChangeStart', function () {
@@ -463,6 +477,40 @@
         })
       }, function() {})
     }
+
+
+    $scope.removeUser = function(ev, user) {
+      var confirm = $mdDialog.confirm()
+        .title('Confirm Removal')
+        .textContent('Are you certain you want to remove this user?')
+        .ariaLabel('Confirm')
+        .targetEvent(ev)
+        .ok('Yes')
+        .cancel('No');
+      $mdDialog.show(confirm).then(function() {
+        $http({url: "/api/users/"+user.id, method: "DELETE"}).success(function(){
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Removing User')
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+          update()
+        }).error(function(err) {
+          if(err.status == 401)
+            location.href='/logout'
+
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Error Removing User: ',err.message)
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+        })
+      }, function() {
+      });
+    }
+
   })
 
   app.controller('DialogCtrl', function($scope, $http, locals, $mdDialog) {

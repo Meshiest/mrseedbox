@@ -15,6 +15,11 @@
           <div style='font-size: 0.5em;'>{{(user.create_time * 1000) | date:'d MMMM yyyy'}}</div>
         </div>
         <span flex></span>
+        <md-button class='md-icon-button' ng-if='level >= PERMISSIONS.EDIT_USER' ng-click='removeUser($event, user)'>
+          <md-icon>
+            delete
+          </md-icon>
+        </md-button>
         <md-button class='md-icon-button' ng-click='showUserDialog($event, user)' ng-if='level >= PERMISSIONS.EDIT_USER || user.id == id'>
           <md-icon>
             create

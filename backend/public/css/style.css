@@ -2,11 +2,8 @@ md-sidenav {
   fill: #737373;
 }
 
-body, html {
-  overflow: hidden;
-}
-
 body, html, .bg {
+  overflow: hidden;
   background: linear-gradient(#eee,#ccc);
   background: -webkit-linear-gradient(#eee,#ccc);
 }
