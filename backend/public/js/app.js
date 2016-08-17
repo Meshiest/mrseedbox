@@ -201,6 +201,12 @@
             $scope.torrents.push(torrent)
           }
         }
+        for(var i = 0; i < $scope.torrents.length; i++) {
+          var torrent = $scope.torrents[i]
+          if(torrent.delete_flag) {
+            $scope.torrents.splice(i--, 1)
+          }
+        }
         updateInterval = $timeout(update, 2000)
       }).error(function(err){
         if(err.status == 401)
@@ -208,12 +214,6 @@
         updateInterval = $timeout(update, 5000)
       })
 
-      for(var i = 0; i < $scope.torrents.length; i++) {
-        var torrent = $scope.torrents[i]
-        if(torrent.delete_flag) {
-          $scope.torrents.splice(i--, 1)
-        }
-      }
     }
 
     update()
@@ -411,6 +411,12 @@
             $scope.users.push(user)
           }
         }
+        for(var i = 0; i < $scope.users.length; i++) {
+          var user = $scope.users[i]
+          if(user.delete_flag) {
+            $scope.users.splice(i--, 1)
+          }
+        }
         updateInterval = $timeout(update, 20000)
       }).error(function(err){
         if(err.status == 401)
@@ -418,12 +424,6 @@
         updateInterval = $timeout(update, 5000)
       })
 
-      for(var i = 0; i < $scope.users.length; i++) {
-        var user = $scope.users[i]
-        if(user.delete_flag) {
-          $scope.users.splice(i--, 1)
-        }
-      }
     }
 
     update()
@@ -520,6 +520,7 @@
   app.controller('FeedCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
 
     $scope.feeds = []
+    $scope.listeners = []
 
     var updateInterval
 
@@ -547,6 +548,12 @@
             $scope.feeds.push(feed)
           }
         }
+        for(var i = 0; i < $scope.feeds.length; i++) {
+          var feed = $scope.feeds[i]
+          if(feed.delete_flag) {
+            $scope.feeds.splice(i--, 1)
+          }
+        }
         updateInterval = $timeout(update, 20000)
       }).error(function(err){
         if(err.status == 401)
@@ -554,13 +561,38 @@
         updateInterval = $timeout(update, 5000)
       })
 
-      for(var i = 0; i < $scope.feeds.length; i++) {
-        var feed = $scope.feeds[i]
-        if(feed.delete_flag) {
-          $scope.feeds.splice(i--, 1)
+    }
+
+    $http.get('/api/listeners').success(function(listeners){
+      var map = {}
+      for(var i in $scope.listeners) {
+        var listener = $scope.listeners[i]
+        listener.delete_flag = true
+        map[listener.id] = listener
+      }
+      for(var i in listeners) {
+        var listener = listeners[i]
+        var exist = map[listener.id]
+        if(exist) {
+          exist.name = listener.name
+          exist.pattern = listener.pattern
+          exist.feed_id = listener.feed_id
+          delete exist.delete_flag
+        } else {
+          $scope.listeners.push(listener)
         }
       }
-    }
+      for(var i = 0; i < $scope.listeners.length; i++) {
+        var listener = $scope.listeners[i]
+        if(listener.delete_flag) {
+          $scope.listeners.splice(i--, 1)
+        }
+      }
+    }).error(function(err){
+      if(err.status == 401)
+        location.href='/logout'
+    })
+
 
     update()
 
@@ -627,7 +659,7 @@
         .ok('Yes')
         .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/feed/"+user.id, method: "DELETE"}).success(function(){
+        $http({url: "/api/feeds/"+feed.id, method: "DELETE"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing Feed')
@@ -642,6 +674,87 @@
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error Removing Feed: ',err.message)
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+        })
+      }, function() {
+      });
+    }
+
+    $scope.showListenerDialog = function(ev, feed, listener){
+      var editing = !!listener;
+      var id;
+      var payload = {
+        feed_id: feed.id,
+        name: 'Listener',
+        pattern: '.'
+      }
+      if(editing) {
+        id = listener.id;
+        payload = {
+          name: listener.name,
+          pattern: listener.pattern
+        }
+      }
+      $mdDialog.show({
+        controller: 'DialogCtrl',
+        templateUrl: 'views/dialogs/add_listener.html',
+        parent: angular.element(document.body),
+        locals: {
+          editing: editing,
+          payload: payload
+        },
+        targetEvent: ev,
+        clickOutsideToClose: true
+      }).then(function(success) {
+        $http({url: "/api/listeners" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent((editing?"Editing":"Adding")+' Listener')
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+          update()
+        }).error(function(err) {
+          if(err.status == 401)
+            location.href='/logout'
+
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Error '+(editing?"Editing":"Adding")+' Listener: ',err.message)
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+        })
+      }, function() {})
+    }
+
+
+    $scope.removeListener = function(ev, user) {
+      var confirm = $mdDialog.confirm()
+        .title('Confirm Removal')
+        .textContent('Are you certain you want to remove this listener?')
+        .ariaLabel('Confirm')
+        .targetEvent(ev)
+        .ok('Yes')
+        .cancel('No');
+      $mdDialog.show(confirm).then(function() {
+        $http({url: "/api/listeners/"+user.id, method: "DELETE"}).success(function(){
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Removing Listener')
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+          update()
+        }).error(function(err) {
+          if(err.status == 401)
+            location.href='/logout'
+
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Error Removing Listener: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
           )

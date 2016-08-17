@@ -20,6 +20,11 @@
             delete
           </md-icon>
         </md-button>
+        <md-button class='md-icon-button' ng-click='showListenerDialog($event, feed)' ng-if='level >= PERMISSIONS.EDIT_LISTENER'>
+          <md-icon>
+            playlist_add
+          </md-icon>
+        </md-button>
         <md-button class='md-icon-button' ng-click='showFeedDialog($event, feed)' ng-if='level >= PERMISSIONS.EDIT_FEED'>
           <md-icon>
             create
@@ -28,9 +33,24 @@
       </div>
     </md-toolbar>
     <md-card-content style='padding: 0;'>
-      <md-list>
-        <md-list-item>
-          Listener
+      <md-list style='padding: 0;'>
+        <md-list-item ng-repeat='listener in listeners' ng-if='listener.feed_id==feed.id' layout='row'>
+          <div layout='column' style='margin-left: 1em;' flex='50'>
+            <div>{{listener.name}}</div>
+            <div style='font-size: 0.5em;'>Pattern: /{{listener.pattern}}/i</div>
+          </div>
+          <div layout='row' flex='50' layout-align='end'>
+            <md-button class='md-icon-button' ng-click='removeListener($event, listener)' ng-if='level >= PERMISSIONS.EDIT_LISTENER'>
+              <md-icon>
+              delete
+              </md-icon>
+            </md-button>
+            <md-button class='md-icon-button' ng-click='showListenerDialog($event, feed, listener)' ng-if='level >= PERMISSIONS.EDIT_LISTENER'>
+              <md-icon>
+                create
+              </md-icon>
+            </md-button>
+          </div>
         </md-list-item>
       </md-list>
     </md-card-content>

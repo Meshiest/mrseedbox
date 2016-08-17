@@ -11,7 +11,7 @@
     </md-toolbar>
     <md-dialog-content>
       <div class="md-dialog-content">
-        <md-input-container class='md-block'>
+        <md-input-container class='md-block' style='margin-bottom: 0;'>
           <label>Name</label>
           <input required type='text' name='name' ng-model="locals.payload.name" ng-pattern='/^[a-z0-9_-]{0,48}$/i' />
           <div ng-messages='userForm.name.$error'>

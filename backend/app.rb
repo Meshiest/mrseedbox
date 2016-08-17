@@ -109,7 +109,8 @@ CREATE TABLE IF NOT EXISTS listeners (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   feed_id INT NOT NULL,
   name VARCHAR(256),
-  pattern VARCHAR(48) DEFAULT '.'
+  pattern VARCHAR(48) DEFAULT '.',
+  last_update BIGINT
 );""")
 $mysql.query("""
 CREATE TABLE IF NOT EXISTS user_listeners (
@@ -131,19 +132,24 @@ Thread.start {
       to_add = []
       now = Time.now.to_i
       feeds.each do |feed|
-        if feed['update_duration'] * 60 * 1000 + feed['last_update'] > now
-          $mysql.query("UPDATE feeds SET last_update=#{now} WHERE id=#{feed['id']};")
+        shouldUpdateFeed = false
+        if feed['update_duration'] * 60 + (feed['last_update'] || 0) < now
           begin
             feedData = RSS::Parser.parse(feed['uri'])
             $mysql.query("SELECT * FROM listeners WHERE feed_id=#{feed['id']};").each do |listener|
-              pattern = /#{listener['pattern']}/
+              pattern = /#{listener['pattern']}/i
+              shouldUpdate = false
               feedData.items.each do |item|
                 updateTime = item.pubDate.to_i
-                if pattern.match(item.title) && updateTime >= feed['last_update']
+                if pattern.match(item.title) && updateTime >= (listener['last_update'] || 0)
+                  shouldUpdate = true
+                  shouldUpdateFeed = true
                   to_add << item.link
                 end
               end
+              $mysql.query("UPDATE listeners SET last_update=#{now} WHERE id=#{listener['id']};") if shouldUpdate
             end
+            $mysql.query("UPDATE feeds SET last_update=#{now} WHERE id=#{feed['id']};") if shouldUpdateFeed
           rescue
             puts "Error in feed #{feed['id']}", $!.backtrace
           end
@@ -161,7 +167,7 @@ Thread.start {
       end
     rescue
     end
-    sleep 15 * 60
+    sleep 60
   }
 }
 
@@ -681,7 +687,7 @@ class Server < Sinatra::Base
       end
       pattern = params[:pattern] || '.'
       name = params[:name] || "Listener for #{feed_id} #{pattern}"
-      unless /^[a-z0-9_-]{1,256}$/i.match(name) && /^[a-z0-9().*+?|\[\]-]{1,48}$/i.match(pattern)
+      unless /^[a-z0-9_-]{1,48}$/i.match(name) && /^[a-z0-9().*+?|\[\]-]{1,48}$/i.match(pattern)
         status 422
         return {
           status: 422,
@@ -827,11 +833,11 @@ class Server < Sinatra::Base
       if duration
         duration = duration.to_i rescue 15
       end
-      unless name && uri && /^[a-z0-9_-]{1,256}$/i.match(name) && /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/=]*)$/i.match(uri) && name.length > 0 && name.length <= 48 && uri.length <= 256
+      unless name && uri && /^[a-z0-9_-]{1,48}$/i.match(name) && /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/=]*)$/i.match(uri) && name.length > 0 && name.length <= 48 && uri.length <= 256
         status 422
         return {
           status: 422,
-          message: "Invalid Parameters (Bad name(#{/^[a-z0-9_-]{1,256}$/i.match(name)}) or uri",
+          message: "Invalid Parameters (Bad name(#{/^[a-z0-9_-]{1,48}$/i.match(name)}) or uri",
         }.to_json
       end
       begin 
