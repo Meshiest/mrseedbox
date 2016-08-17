@@ -1,5 +1,9 @@
 <div style='max-height: calc(100% - 64px); overflow-y: auto;'>
 
+  <div style='text-align: center; padding: 2em; font-size: 2em; color: #999;' flex ng-hide='torrents.length'>
+    Nothing Here!
+  </div>
+
   <md-card ng-repeat='torrent in torrents | orderBy:"id":true' layout='column'>
     <md-toolbar md-theme='status_{{torrent.status}}'>
       <div class='md-toolbar-tools' layout='row'>
@@ -24,7 +28,7 @@
         </md-button>
       </div>
     </md-toolbar>
-    <md-progress-linear md-theme="status_seeding" md-mode="determinate" value="{{getProgress(torrent)}}"></md-progress-linear>
+    <md-progress-linear md-theme="status_seeding" ng-hide='getProgress(torrent) == 100' md-mode="determinate" value="{{getProgress(torrent)}}"></md-progress-linear>
   </md-card>
 </div>
 

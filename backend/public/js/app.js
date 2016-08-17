@@ -176,8 +176,61 @@
 
   })
 
-  app.controller('HomeCtrl', function($scope) {
+  app.controller('HomeCtrl', function($scope, $timeout, $http) {
+    $scope.messages = []
+    $scope.lastUpdate = 0
 
+    var updateInterval
+    
+    $scope.message = ''
+    $scope.pending = false
+    $scope.sendMessage = function() {
+      if($scope.message.length < 1 || $scope.message.length > 256)
+        return; 
+      $scope.pending = true
+      $http({url:'/api/messages',method:'POST',params:{msg: $scope.message}}).
+      success(function() {
+        $scope.pending = false
+        $scope.message = ''
+        update()
+      }).error(function(err) {
+        $scope.pending = false
+
+        $mdToast.show(
+          $mdToast.simple()
+            .textContent('Error Sending Message: ',err.message)
+            .position('bottom left')
+            .hideDelay(3000)
+        )
+      })
+    }
+
+    var update = function () {
+      $timeout.cancel(updateInterval)
+
+      $http.get('/api/messages').success(function(messages){
+        for(i in messages) {
+          var msg = messages[i]
+          if(msg.time > $scope.lastUpdate) {
+            $scope.lastUpdate = msg.time;
+            $scope.messages.push(msg)
+          }
+        }
+
+        updateInterval = $timeout(update, 2000)
+      }).error(function(err){
+        if(err.status == 401)
+          location.href='/logout'
+        updateInterval = $timeout(update, 5000)
+      })
+
+    }
+
+    update()
+
+    $scope.$on('$routeChangeStart', function () {
+      $timeout.cancel(updateInterval)
+    })
   })
 
   app.controller('TorrentCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {

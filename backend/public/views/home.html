@@ -1,3 +1,30 @@
-<div layout-fill style='height: 100%;'>
-  <iframe src="//webchat.freenode.net?channels=%23mrseedbox&uio=MT1mYWxzZSY3PWZhbHNlJjExPTE4NQf1" frameborder="0" seamless="seamless" style='height: calc(100% - 4px); width: 100%; border: none;'></iframe>
+<div style='max-height: calc(100% - 64px); overflow-y: auto;'>
+
+<form name="msgForm" ng-submit='sendMessage()' autocomplete="off">
+  <md-toolbar>
+    <div class='md-toolbar-tools'>
+      <md-input-container class='md-block' flex>
+        <md-icon style='color: #fff;'>
+          chat
+        </md-icon>
+        <input autocomplete="off" ng-disabled='pending' style='color: #fff;' type="text" name='text' ng-model='message' placeholder='Message' ng-minlength="1" ng-maxlength="256">
+      </md-input-container>
+    </div>
+  </md-toolbar>
+</form>
+
+  <div style='text-align: center; padding: 2em; font-size: 2em; color: #999;' flex ng-hide='messages.length'>
+    Nothing Here!
+  </div>
+
+  <md-card ng-repeat='msg in messages | orderBy:$index:true' layout='row' layout-padding>
+    <div flex='20' layout='column'>
+      <div>#{{msg.user_id}}</div>
+      <div style='font-size: 0.5em;'>{{msg.time | ago}}</div>
+    </div>
+    <div flex='80'>
+      {{msg.message}}
+    </div>
+  </md-card>
+
 </div>

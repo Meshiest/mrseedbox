@@ -234,6 +234,7 @@ server_options = {
 }
 
 $connections = []
+$messages = []
 class Server < Sinatra::Base
 
   set :json_content_type, :json
@@ -267,6 +268,56 @@ class Server < Sinatra::Base
   end
 
   # Api Routes
+
+  get '/api/messages' do
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :READ_TORRENT
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    else 
+      status 200
+      $messages.to_json
+    end
+  end
+
+  post '/api/messages' do 
+    user_id = session[:user_id]
+    content_type :json
+    if !hasPerm user_id, :READ_TORRENT
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized"
+      }.to_json
+    else 
+      msg = params[:msg]
+      if msg.length < 1 || msg.length > 256
+        status 422
+        {
+          status: 422,
+          message: "Invalid Message",
+        }.to_json
+      else
+        $messages << {
+          user_id: user_id,
+          message: msg,
+          time: Time.now.to_i,
+        }
+        if $messages.length > 20
+          $messages = $messages[1..-1]
+        end
+        status 200
+        {
+          status: 200,
+          message: "OK"
+        }.to_json
+      end
+    end
+  end
 
   # files api
 
