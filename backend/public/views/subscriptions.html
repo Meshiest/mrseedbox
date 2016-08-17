@@ -19,7 +19,7 @@
         <div layout='row' layout-align='end' flex='20'>
           <md-button class='md-icon-button' ng-click='updateSub(listener)' ng-if='level >= PERMISSIONS.EDIT_SUBSCRIPTION'>
             <md-icon>
-              {{listener.last_update >= listener.sub.last_seen ? 'visibility_off' : 'visibility'}}
+              {{listener.last_update < listener.sub.last_seen ? 'visibility_off' : 'visibility'}}
             </md-icon>
           </md-button>
         </div>
