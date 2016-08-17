@@ -133,6 +133,7 @@ Thread.start {
       now = Time.now.to_i
       feeds.each do |feed|
         shouldUpdateFeed = false
+        puts "#{feed['update_duration'] * 60 + (feed['last_update'] || 0)} VS #{now}"
         if feed['update_duration'] * 60 + (feed['last_update'] || 0) < now
           begin
             feedData = RSS::Parser.parse(feed['uri'])

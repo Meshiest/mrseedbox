@@ -65,7 +65,7 @@
 
     $routeProvider.
     when('/', {
-      redirectTo: '/home'
+      redirectTo: '/torrents'
     }).
     when('/home', {
       controller: 'HomeCtrl',
@@ -82,6 +82,10 @@
     when('/feeds', {
       controller: 'FeedCtrl',
       templateUrl: '/views/feeds.html'
+    }).
+    when('/404', {
+      controller: 'HomeCtrl',
+      templateUrl: '/views/notfound.html'
     }).
     otherwise({
       redirectTo: '/404'
@@ -137,7 +141,7 @@
     }, {
       title: 'Subscriptions',
       icon: 'star_rate',
-      path: '/home',
+      path: '/subscriptions',
       perm: PERMISSIONS.READ_SUBSCRIPTION,
     }, {
       title: 'Users',
@@ -365,18 +369,14 @@
         return 'Now'
       if(delta < 60)
         return 'Moments Ago'
-      if(delta < 60 * 5)
-        return 'Minutes Ago'
-      if(delta < 60 * 30)
-        return 'Half an Hour Ago'
       if(delta < 60 * 60)
-        return 'Almost An Hour Ago'
-      if(delta < 60 * 60 * 5)
-        return 'A Few Hours Ago'
-      if(delta < 60 * 60 * 24 * 5)
-        return 'Days Ago'
-      if(delta < 60 * 60 * 24 * 10)
-        return 'A Week Ago'
+        return Math.round(delta/60) + ' Minute' + (Math.round(delta/60)!=1?'s':'') + ' Ago'
+      if(delta < 60 * 60 * 24)
+        return Math.round(delta/60/60) + ' Hour' + (Math.round(delta/60/60)!=1?'s':'') + ' Ago'
+      if(delta < 60 * 60 * 24 * 7)
+        return Math.round(delta/60/60/24) + ' Day' + (Math.round(delta/60/60/24)!=1?'s':'') + ' Ago'
+      if(delta < 60 * 60 * 24 * 30)
+        return Math.round(delta/60/60/24/7) + ' Week' + (Math.round(delta/60/60/24/7)!=1?'s':'') + ' Ago'
       return $filter('date')(time * 1000, 'd MMMM yyyy')
     }
   })
@@ -554,42 +554,45 @@
             $scope.feeds.splice(i--, 1)
           }
         }
-        updateInterval = $timeout(update, 20000)
+        $http.get('/api/listeners').success(function(listeners){
+          var map = {}
+          for(var i in $scope.listeners) {
+            var listener = $scope.listeners[i]
+            listener.delete_flag = true
+            map[listener.id] = listener
+          }
+          for(var i in listeners) {
+            var listener = listeners[i]
+            var exist = map[listener.id]
+            if(exist) {
+              exist.name = listener.name
+              exist.pattern = listener.pattern
+              exist.feed_id = listener.feed_id
+              delete exist.delete_flag
+            } else {
+              $scope.listeners.push(listener)
+            }
+          }
+          for(var i = 0; i < $scope.listeners.length; i++) {
+            var listener = $scope.listeners[i]
+            if(listener.delete_flag) {
+              $scope.listeners.splice(i--, 1)
+            }
+          }
+        }).success(function() {
+          updateInterval = $timeout(update, 20000)
+        }).error(function(err){
+          if(err.status == 401)
+            location.href='/logout'
+          updateInterval = $timeout(update, 5000)
+        })
+        
       }).error(function(err){
         if(err.status == 401)
           location.href='/logout'
         updateInterval = $timeout(update, 5000)
       })
 
-      $http.get('/api/listeners').success(function(listeners){
-        var map = {}
-        for(var i in $scope.listeners) {
-          var listener = $scope.listeners[i]
-          listener.delete_flag = true
-          map[listener.id] = listener
-        }
-        for(var i in listeners) {
-          var listener = listeners[i]
-          var exist = map[listener.id]
-          if(exist) {
-            exist.name = listener.name
-            exist.pattern = listener.pattern
-            exist.feed_id = listener.feed_id
-            delete exist.delete_flag
-          } else {
-            $scope.listeners.push(listener)
-          }
-        }
-        for(var i = 0; i < $scope.listeners.length; i++) {
-          var listener = $scope.listeners[i]
-          if(listener.delete_flag) {
-            $scope.listeners.splice(i--, 1)
-          }
-        }
-      }).error(function(err){
-        if(err.status == 401)
-          location.href='/logout'
-      })
 
     }
 
