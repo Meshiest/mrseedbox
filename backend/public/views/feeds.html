@@ -1,0 +1,44 @@
+<div>
+  <md-card ng-repeat='feed in feeds'>
+    <md-toolbar>
+      <div class='md-toolbar-tools' layout='row'>
+        <div flex='50' layout='column'>
+          <div>{{feed.name}} <span style='font-size: 0.5em'>Created By #{{feed.creator_id}}</span></div>
+          <div style='font-size: 0.5em'>{{feed.uri}}</div>
+        </div>
+        <div flex='30' layout='column'>
+          <div style='font-size: 0.75'>
+            Updated {{feed.last_update | ago}}
+          </div>
+          <div style='font-size: 0.5em'>
+            Every {{feed.update_duration}} Minutes
+          </div>
+        </div>
+        <span flex></span>
+        <md-button class='md-icon-button' ng-if='level >= PERMISSIONS.EDIT_FEED' ng-click='removeFeed($event, feed)'>
+          <md-icon>
+            delete
+          </md-icon>
+        </md-button>
+        <md-button class='md-icon-button' ng-click='showFeedDialog($event, feed)' ng-if='level >= PERMISSIONS.EDIT_FEED'>
+          <md-icon>
+            create
+          </md-icon>
+        </md-button>
+      </div>
+    </md-toolbar>
+    <md-card-content style='padding: 0;'>
+      <md-list>
+        <md-list-item>
+          Listener
+        </md-list-item>
+      </md-list>
+    </md-card-content>
+  </md-card>
+</div>
+
+<div>
+  <md-button aria-label='menu' class='md-fab md-fab-bottom-right md-accent' ng-click='showFeedDialog($event)' ng-if='level >= PERMISSIONS.EDIT_FEED'>
+    <md-icon>add</md-icon>
+  </md-button>
+</div>

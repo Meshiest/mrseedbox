@@ -79,6 +79,10 @@
       controller: 'UserCtrl',
       templateUrl: '/views/users.html'
     }).
+    when('/feeds', {
+      controller: 'FeedCtrl',
+      templateUrl: '/views/feeds.html'
+    }).
     otherwise({
       redirectTo: '/404'
     })
@@ -128,7 +132,7 @@
     }, {
       title: 'Feeds',
       icon: 'rss_feed',
-      path: '/home',
+      path: '/feeds',
       perm: PERMISSIONS.READ_FEED,
     }, {
       title: 'Subscriptions',
@@ -417,7 +421,7 @@
       for(var i = 0; i < $scope.users.length; i++) {
         var user = $scope.users[i]
         if(user.delete_flag) {
-          $scope.torrents.splice(i--, 1)
+          $scope.users.splice(i--, 1)
         }
       }
     }
@@ -503,6 +507,141 @@
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error Removing User: ',err.message)
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+        })
+      }, function() {
+      });
+    }
+
+  })
+
+  app.controller('FeedCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
+
+    $scope.feeds = []
+
+    var updateInterval
+
+    var update = function () {
+      $timeout.cancel(updateInterval)
+
+      $http.get('/api/feeds').success(function(feeds){
+        var map = {}
+        for(var i in $scope.feeds) {
+          var feed = $scope.feeds[i]
+          feed.delete_flag = true
+          map[feed.id] = feed
+        }
+        for(var i in feeds) {
+          var feed = feeds[i]
+          var exist = map[feed.id]
+          if(exist) {
+            exist.name = feed.name
+            exist.uri = feed.uri
+            exist.creator_id = feed.creator_id
+            exist.last_update = feed.last_update
+            exist.update_duration = feed.update_duration
+            delete exist.delete_flag
+          } else {
+            $scope.feeds.push(feed)
+          }
+        }
+        updateInterval = $timeout(update, 20000)
+      }).error(function(err){
+        if(err.status == 401)
+          location.href='/logout'
+        updateInterval = $timeout(update, 5000)
+      })
+
+      for(var i = 0; i < $scope.feeds.length; i++) {
+        var feed = $scope.feeds[i]
+        if(feed.delete_flag) {
+          $scope.feeds.splice(i--, 1)
+        }
+      }
+    }
+
+    update()
+
+    $scope.$on('$routeChangeStart', function () {
+      $timeout.cancel(updateInterval)
+    })
+
+    $scope.showFeedDialog = function(ev, feed){
+      var editing = !!feed;
+      var id;
+      var payload = {
+        url: '',
+        name: 'Feed',
+        duration: 15
+      }
+      if(editing) {
+        id = feed.id;
+        payload = {
+          url: feed.uri,
+          name: feed.name,
+          duration: feed.duration
+        }
+      }
+      $mdDialog.show({
+        controller: 'DialogCtrl',
+        templateUrl: 'views/dialogs/add_feed.html',
+        parent: angular.element(document.body),
+        locals: {
+          editing: editing,
+          payload: payload
+        },
+        targetEvent: ev,
+        clickOutsideToClose: true
+      }).then(function(success) {
+        $http({url: "/api/feeds" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent((editing?"Editing":"Adding")+' Feed')
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+          update()
+        }).error(function(err) {
+          if(err.status == 401)
+            location.href='/logout'
+
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Error '+(editing?"Editing":"Adding")+' Feed: ',err.message)
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+        })
+      }, function() {})
+    }
+
+
+    $scope.removeFeed = function(ev, user) {
+      var confirm = $mdDialog.confirm()
+        .title('Confirm Removal')
+        .textContent('Are you certain you want to remove this feed?')
+        .ariaLabel('Confirm')
+        .targetEvent(ev)
+        .ok('Yes')
+        .cancel('No');
+      $mdDialog.show(confirm).then(function() {
+        $http({url: "/api/feed/"+user.id, method: "DELETE"}).success(function(){
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Removing Feed')
+              .position('bottom left')
+              .hideDelay(3000)
+          )
+          update()
+        }).error(function(err) {
+          if(err.status == 401)
+            location.href='/logout'
+
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Error Removing Feed: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
           )

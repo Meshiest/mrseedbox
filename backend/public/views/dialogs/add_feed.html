@@ -1,0 +1,48 @@
+<md-dialog aria-label="Add Feed"  ng-cloak>
+  <form name='feedForm'>
+    <md-toolbar>
+      <div class="md-toolbar-tools">
+        <h2>{{locals.editing ? 'Edit' : 'Add'}} A Feed</h2>
+        <span flex></span>
+        <md-button class="md-icon-button" ng-click="cancel()">
+          <md-icon>close</md-icon>
+        </md-button>
+      </div>
+    </md-toolbar>
+    <md-dialog-content>
+      <div class="md-dialog-content">
+        <md-input-container class='md-block'>
+          <label>Name</label>
+          <input required type='text' name='name' ng-model="locals.payload.name" ng-pattern='/^[a-z0-9_-]{0,48}$/i' />
+          <div ng-messages='feedForm.name.$error'>
+            <div ng-message='required'>Enter a Name</div>
+            <div ng-message='pattern'>Invalid Name (a-zA-Z0-9_-)</div>
+          </div>
+        </md-input-container>
+        <md-input-container class='md-block'>
+          <label>Feed URL</label>
+          <input required type='url' name='url' ng-model="locals.payload.url" ng-pattern='/^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/=]*)$/i' />
+          <div ng-messages='feedForm.url.$error'>
+            <div ng-message='required'>Enter a Feed Url</div>
+            <div ng-message='pattern'>Invalid Feed Url</div>
+          </div>
+        </md-input-container>
+        <md-input-container class='md-block'>
+          <label>Duration</label>
+          <input required type='duration' name='duration' ng-model="locals.payload.duration" min='15' step="1" ng-pattern="/^\d+$/"/>
+          <div ng-messages='feedForm.duration.$error'>
+            <div ng-message='required'>Enter a Duration</div>
+            <div ng-message='pattern'>Enter a Whole Number</div>
+            <div ng-message='min'>Enter A Number Greater Than 15</div>
+          </div>
+        </md-input-container>
+      </div>
+    </md-dialog-content>
+    <md-dialog-actions layout="row">
+      <span flex></span>
+      <md-button ng-click="answer(locals.payload)" ng-disabled='feedForm.$invalid ' class='md-primary md-raised'>
+        {{locals.editing ? 'Update' : 'Add'}}
+      </md-button>
+    </md-dialog-actions>
+  </form>
+</md-dialog>
