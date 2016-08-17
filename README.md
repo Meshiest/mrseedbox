@@ -2,6 +2,10 @@
 
 This is a readme I made in a rush, I will be adding more things in right now.
 
+![](http://i.imgur.com/tMiGwxQ.png)
+![](http://i.imgur.com/jmW8KzM.png)
+![](http://i.imgur.com/relNlJz.png)
+
 ##Install process (Still wip, sorry!):
 
 1. Be running Linux
