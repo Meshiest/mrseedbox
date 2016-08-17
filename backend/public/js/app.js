@@ -581,7 +581,7 @@
         payload = {
           url: feed.uri,
           name: feed.name,
-          duration: feed.duration
+          duration: feed.update_duration
         }
       }
       $mdDialog.show({
