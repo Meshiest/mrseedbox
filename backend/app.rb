@@ -69,24 +69,37 @@ G_API_SCOPES = [
 
 # mysql client
 
+MYSQL_CONFIG = {
+  :host     => 'mysql',
+  :port     => 3306,
+  :username => envRequire('MYSQL_USER'),
+  :password => envRequire('MYSQL_PASSWORD'),
+  :database => envRequire('MYSQL_DATABASE'),
+}
+
 puts "Setting up Mysql"
 until $mysql
   begin
-    $mysql = Mysql2::Client.new({
-      :host     => 'mysql',
-      :port     => 3306,
-      :username => envRequire('MYSQL_USER'),
-      :password => envRequire('MYSQL_PASSWORD'),
-      :database => envRequire('MYSQL_DATABASE'),
-    })
+    $mysql = Mysql2::Client.new(MYSQL_CONFIG)
   rescue
     puts "Couldn't Connect, waiting 5 seconds..."
     sleep 5
   end
 end
 
+$currMysql = 0
+$mysqlPool = []
+def mysql
+  $currMysql = ($currMysql + 1) % $mysqlPool.length
+  return $mysqlPool[$currMysql]
+end
+
+5.times {
+  $mysqlPool << Mysql2::Client.new(MYSQL_CONFIG)
+}
+
 puts "Creating Tables"
-$mysql.query("""
+mysql.query("""
 CREATE TABLE IF NOT EXISTS users (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(64) UNIQUE,
@@ -95,7 +108,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_online BIGINT,
   create_time BIGINT
 );""")
-$mysql.query("""
+mysql.query("""
 CREATE TABLE IF NOT EXISTS feeds (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   creator_id INT,
@@ -104,7 +117,7 @@ CREATE TABLE IF NOT EXISTS feeds (
   update_duration INT,
   last_update BIGINT
 );""")
-$mysql.query("""
+mysql.query("""
 CREATE TABLE IF NOT EXISTS listeners (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   feed_id INT NOT NULL,
@@ -112,14 +125,14 @@ CREATE TABLE IF NOT EXISTS listeners (
   pattern VARCHAR(48) DEFAULT '.',
   last_update BIGINT
 );""")
-$mysql.query("""
+mysql.query("""
 CREATE TABLE IF NOT EXISTS user_listeners (
   user_id INT NOT NULL,
   listener_id INT NOT NULL,
   last_seen BIGINT
 );""")
 
-$firstUser = $mysql.query("SELECT COUNT(*) FROM users").first["COUNT(*)"] == 0
+$firstUser = mysql.query("SELECT COUNT(*) FROM users").first["COUNT(*)"] == 0
 if $firstUser
   puts "First user to sign in will be made the owner."
 end
@@ -128,7 +141,7 @@ end
 Thread.start {
   loop {
     begin
-      feeds = $mysql.query("SELECT * FROM feeds;")
+      feeds = mysql.query("SELECT * FROM feeds;")
       to_add = []
       now = Time.now.to_i
       feeds.each do |feed|
@@ -136,7 +149,7 @@ Thread.start {
         if feed['update_duration'] * 60 + (feed['last_update'] || 0) < now
           begin
             feedData = RSS::Parser.parse(feed['uri'])
-            $mysql.query("SELECT * FROM listeners WHERE feed_id=#{feed['id']};").each do |listener|
+            mysql.query("SELECT * FROM listeners WHERE feed_id=#{feed['id']};").each do |listener|
               pattern = /#{listener['pattern']}/i
               shouldUpdate = false
               feedData.items.each do |item|
@@ -147,9 +160,9 @@ Thread.start {
                   to_add << item.link
                 end
               end
-              $mysql.query("UPDATE listeners SET last_update=#{now} WHERE id=#{listener['id']};") if shouldUpdate
+              mysql.query("UPDATE listeners SET last_update=#{now} WHERE id=#{listener['id']};") if shouldUpdate
             end
-            $mysql.query("UPDATE feeds SET last_update=#{now} WHERE id=#{feed['id']};") if shouldUpdateFeed
+            mysql.query("UPDATE feeds SET last_update=#{now} WHERE id=#{feed['id']};") if shouldUpdateFeed
           rescue
             puts "Error in feed #{feed['id']}", $!.backtrace
           end
@@ -174,21 +187,21 @@ Thread.start {
 def addUserToDb email, name, level
   begin
     puts "Adding #{email} to database with level #{level}"
-    $mysql.query("INSERT INTO users (email, name, level, create_time) VALUES ('#{email}', '#{name}', #{level}, #{Time.now.to_i});")
-    return $mysql.query("SELECT * FROM users WHERE email='#{email}';").first
+    mysql.query("INSERT INTO users (email, name, level, create_time) VALUES ('#{email}', '#{name}', #{level}, #{Time.now.to_i});")
+    return mysql.query("SELECT * FROM users WHERE email='#{email}';").first
   rescue
   end
 end
 
 def updateUserStatus user_id
   begin
-    $mysql.query("UPDATE users SET last_online=#{Time.now.to_i} WHERE id=#{user_id};")
+    mysql.query("UPDATE users SET last_online=#{Time.now.to_i} WHERE id=#{user_id};")
   rescue
   end
 end
 
 def hasPerm user_id, permission
-  user = $mysql.query("SELECT * FROM users WHERE id='#{user_id}';").first
+  user = mysql.query("SELECT * FROM users WHERE id='#{user_id}';").first
   return false unless user
   return PERMISSIONS[permission] <= user['level']
 end
@@ -228,7 +241,7 @@ class Server < Sinatra::Base
 
   get '/' do
     if session[:user_id]
-      @user = $mysql.query("SELECT * FROM users WHERE id=#{session[:user_id]};").first
+      @user = mysql.query("SELECT * FROM users WHERE id=#{session[:user_id]};").first
       if !@user
         session.delete(:user_id)
         erb :login
@@ -491,7 +504,7 @@ class Server < Sinatra::Base
     else
       status 200
       updateUserStatus user_id
-      result = $mysql.query("SELECT * FROM users;")
+      result = mysql.query("SELECT * FROM users;")
       users = []
       result.each do |user|
         users << user
@@ -518,7 +531,7 @@ class Server < Sinatra::Base
       validUser = /^[a-z0-9_-]{0,48}$/i.match(name)
       validLevel = level >= 0 && level <= PERMISSIONS[:EDIT_USER]
       if validEmail
-        emailIsUsed = $mysql.query("SELECT * FROM users WHERE email='#{params[:email]}';").size == 0
+        emailIsUsed = mysql.query("SELECT * FROM users WHERE email='#{params[:email]}';").size == 0
         validEmail = false unless emailIsUsed
       end
       unless validEmail && validUser && validLevel
@@ -553,7 +566,7 @@ class Server < Sinatra::Base
       }.to_json
     else
       updateUserStatus user_id
-      user = $mysql.query("SELECT * FROM users WHERE id=#{target_id}").first
+      user = mysql.query("SELECT * FROM users WHERE id=#{target_id}").first
       unless user
           status 404
           return {
@@ -569,7 +582,7 @@ class Server < Sinatra::Base
             message: "Invalid Parameters",
           }.to_json
         end
-        $mysql.query("UPDATE users SET name='#{params[:name]}' WHERE id=#{target_id};")
+        mysql.query("UPDATE users SET name='#{params[:name]}' WHERE id=#{target_id};")
       end
       level = params[:level].to_i rescue nil
       if level && level != user['level']
@@ -587,7 +600,7 @@ class Server < Sinatra::Base
             message: "Not Authorized",
           }.to_json
         end
-        $mysql.query("UPDATE users SET level=#{level} WHERE id=#{target_id};")
+        mysql.query("UPDATE users SET level=#{level} WHERE id=#{target_id};")
       end
 
       status 200
@@ -620,7 +633,7 @@ class Server < Sinatra::Base
           message: "Invalid Parameters",
         }.to_json
       end
-      target_user = $mysql.query("SELECT * FROM users WHERE id=#{target_id}").first
+      target_user = mysql.query("SELECT * FROM users WHERE id=#{target_id}").first
       if !target_user
         status 404
         return {
@@ -628,9 +641,9 @@ class Server < Sinatra::Base
           message: "User Not Found",
         }.to_json
       end
-      $mysql.query("DELETE FROM users WHERE id=#{target_id};")
-      $mysql.query("DELETE FROM user_listeners WHERE user_id=#{target_id};")
-      if $mysql.query("SELECT COUNT(*) FROM users").first["COUNT(*)"] == 0
+      mysql.query("DELETE FROM users WHERE id=#{target_id};")
+      mysql.query("DELETE FROM user_listeners WHERE user_id=#{target_id};")
+      if mysql.query("SELECT COUNT(*) FROM users").first["COUNT(*)"] == 0
         $firstUser = true
       end
       status 200
@@ -655,7 +668,7 @@ class Server < Sinatra::Base
     else
       status 200
       updateUserStatus user_id
-      result = $mysql.query("SELECT * FROM listeners;")
+      result = mysql.query("SELECT * FROM listeners;")
       listeners = []
       result.each do |listener|
         listeners << listener
@@ -679,7 +692,7 @@ class Server < Sinatra::Base
       if feed_id
         feed_id = feed_id.to_i rescue nil
       end
-      unless feed_id && $mysql.query("SELECT * FROM feeds WHERE id=#{feed_id};").first
+      unless feed_id && mysql.query("SELECT * FROM feeds WHERE id=#{feed_id};").first
         status 422
         return {
           status: 422,
@@ -695,7 +708,7 @@ class Server < Sinatra::Base
           message: "Invalid Parameters (Bad name or pattern)",
         }.to_json
       end
-      $mysql.query("INSERT INTO listeners (feed_id,name,pattern) VALUES (#{feed_id},'#{name}','#{pattern}')")
+      mysql.query("INSERT INTO listeners (feed_id,name,pattern) VALUES (#{feed_id},'#{name}','#{pattern}')")
       status 200
       {
         status: 200,
@@ -719,7 +732,7 @@ class Server < Sinatra::Base
       }.to_json
     else
       updateUserStatus user_id
-      unless $mysql.query("SELECT * FROM listeners WHERE id=#{target_id}").first
+      unless mysql.query("SELECT * FROM listeners WHERE id=#{target_id}").first
         status 404
         return {
           status: 404,
@@ -734,7 +747,7 @@ class Server < Sinatra::Base
             message: "Invalid Parameters",
           }.to_json
         end
-        $mysql.query("UPDATE listeners SET name='#{params[:name]}' WHERE id=#{target_id};")
+        mysql.query("UPDATE listeners SET name='#{params[:name]}' WHERE id=#{target_id};")
       end
       if params[:pattern]
         unless /^[a-z0-9().*+?|\[\]-]{1,48}$/i.match(params[:pattern])
@@ -744,7 +757,7 @@ class Server < Sinatra::Base
             message: "Invalid Parameters",
           }.to_json
         end
-        $mysql.query("UPDATE listeners SET pattern='#{params[:pattern]}' WHERE id=#{target_id};")
+        mysql.query("UPDATE listeners SET pattern='#{params[:pattern]}' WHERE id=#{target_id};")
       end
 
       status 200
@@ -777,7 +790,7 @@ class Server < Sinatra::Base
           message: "Invalid Parameters",
         }.to_json
       end
-      unless $mysql.query("SELECT * FROM listeners WHERE id=#{target_id};").first
+      unless mysql.query("SELECT * FROM listeners WHERE id=#{target_id};").first
         status 404
         return {
           status: 404,
@@ -785,8 +798,8 @@ class Server < Sinatra::Base
         }.to_json
       end
 
-      $mysql.query("DELETE FROM listeners WHERE id=#{target_id};")
-      $mysql.query("DELETE FROM user_listeners WHERE listener_id=#{target_id};")
+      mysql.query("DELETE FROM listeners WHERE id=#{target_id};")
+      mysql.query("DELETE FROM user_listeners WHERE listener_id=#{target_id};")
       status 200
       {
         status: 200,
@@ -809,7 +822,7 @@ class Server < Sinatra::Base
     else
       status 200
       updateUserStatus user_id
-      result = $mysql.query("SELECT * FROM feeds;")
+      result = mysql.query("SELECT * FROM feeds;")
       feeds = []
       result.each do |feed|
         feeds << feed
@@ -851,7 +864,7 @@ class Server < Sinatra::Base
           message: "Invalid Parameters (URL not RSS feed)",
         }.to_json
       end
-      $mysql.query("INSERT INTO feeds (uri,name,update_duration,creator_id) VALUES ('#{uri}','#{name}',#{duration},#{user_id})")
+      mysql.query("INSERT INTO feeds (uri,name,update_duration,creator_id) VALUES ('#{uri}','#{name}',#{duration},#{user_id})")
       status 200
       {
         status: 200,
@@ -875,7 +888,7 @@ class Server < Sinatra::Base
       }.to_json
     else
       updateUserStatus user_id
-      unless $mysql.query("SELECT * FROM feeds WHERE id=#{target_id};").first
+      unless mysql.query("SELECT * FROM feeds WHERE id=#{target_id};").first
         status 404
         return {
           status: 404,
@@ -890,7 +903,7 @@ class Server < Sinatra::Base
             message: "Invalid Parameters",
           }.to_json
         end
-        $mysql.query("UPDATE feeds SET name='#{params[:name]}' WHERE id=#{target_id};")
+        mysql.query("UPDATE feeds SET name='#{params[:name]}' WHERE id=#{target_id};")
       end
       duration = params[:duration].to_i rescue nil
       if params[:duration]
@@ -901,7 +914,7 @@ class Server < Sinatra::Base
             message: "Invalid Parameters",
           }.to_json
         end
-        $mysql.query("UPDATE feeds SET update_duration=#{duration} WHERE id=#{target_id};")
+        mysql.query("UPDATE feeds SET update_duration=#{duration} WHERE id=#{target_id};")
       end
 
       status 200
@@ -934,7 +947,7 @@ class Server < Sinatra::Base
           message: "Invalid Parameters",
         }.to_json
       end
-      unless $mysql.query("SELECT * FROM feeds WHERE id=#{target_id}").first
+      unless mysql.query("SELECT * FROM feeds WHERE id=#{target_id}").first
         status 404
         return {
           status: 404,
@@ -942,9 +955,9 @@ class Server < Sinatra::Base
         }.to_json
       end
       
-      $mysql.query("DELETE FROM user_listeners WHERE listener_id=ANY (SELECT id FROM listeners WHERE feed_id=#{target_id});")
-      $mysql.query("DELETE FROM feeds WHERE id=#{target_id};")
-      $mysql.query("DELETE FROM listeners WHERE feed_id=#{target_id};")
+      mysql.query("DELETE FROM user_listeners WHERE listener_id=ANY (SELECT id FROM listeners WHERE feed_id=#{target_id});")
+      mysql.query("DELETE FROM feeds WHERE id=#{target_id};")
+      mysql.query("DELETE FROM listeners WHERE feed_id=#{target_id};")
       status 200
       {
         status: 200,
@@ -967,7 +980,7 @@ class Server < Sinatra::Base
     else
       status 200
       updateUserStatus user_id
-      result = $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id};")
+      result = mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id};")
       listeners = []
       result.each do |listener|
         listeners << listener
@@ -991,14 +1004,14 @@ class Server < Sinatra::Base
       if listener_id
         listener_id = listener_id.to_i rescue nil
       end
-      unless listener_id && $mysql.query("SELECT * FROM listeners WHERE id=#{listener_id};").first
+      unless listener_id && mysql.query("SELECT * FROM listeners WHERE id=#{listener_id};").first
         status 422
         return {
           status: 422,
           message: "Invalid Parameters (Bad Listener_Id)",
         }.to_json
       end
-      if $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{listener_id};").first
+      if mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{listener_id};").first
         status 422
         return {
           status: 422,
@@ -1007,7 +1020,7 @@ class Server < Sinatra::Base
       end
 
 
-      $mysql.query("INSERT INTO user_listeners (user_id,listener_id) VALUES (#{user_id}, #{listener_id});")
+      mysql.query("INSERT INTO user_listeners (user_id,listener_id) VALUES (#{user_id}, #{listener_id});")
       status 200
       {
         status: 200,
@@ -1031,7 +1044,7 @@ class Server < Sinatra::Base
       }.to_json
     else
       updateUserStatus user_id
-      unless $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};").first
+      unless mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};").first
         status 404
         return {
           status: 404,
@@ -1039,7 +1052,7 @@ class Server < Sinatra::Base
         }.to_json
       end
       time = (!params[:time] || params[:time].length == 0) && Time.now.to_i || params[:time].to_i rescue Time.now.to_i
-      $mysql.query("UPDATE user_listeners SET last_seen=#{time} WHERE user_id=#{user_id} AND listener_id=#{target_id};")
+      mysql.query("UPDATE user_listeners SET last_seen=#{time} WHERE user_id=#{user_id} AND listener_id=#{target_id};")
       status 200
       {
         status: 200,
@@ -1070,7 +1083,7 @@ class Server < Sinatra::Base
           message: "Invalid Parameters",
         }.to_json
       end
-      unless $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};").size > 0
+      unless mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};").size > 0
         status 404
         return {
           status: 404,
@@ -1078,7 +1091,7 @@ class Server < Sinatra::Base
         }.to_json
       end
       
-      $mysql.query("DELETE FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};")
+      mysql.query("DELETE FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};")
       status 200
       {
         status: 200,
@@ -1124,7 +1137,7 @@ class Server < Sinatra::Base
         $firstUser = false
       end
       
-      user = $mysql.query("SELECT * FROM users WHERE email='#{email}';").first 
+      user = mysql.query("SELECT * FROM users WHERE email='#{email}';").first 
       if user
         session[:user_id] = user['id']
         updateUserStatus user['id']
