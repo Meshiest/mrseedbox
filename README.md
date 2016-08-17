@@ -22,7 +22,7 @@ This is a readme I made in a rush, I will be adding more things in right now.
 * `cp common.env.default common.env`
 * `cp docker-compose.yml.default docker-compose.yml`
 * Edit your docker-compose.yml and common.env files (put google api client and secret in)
-* Generate and SSL Cert: `./setup`
+* Generate a SSL Cert: `./setup`
 
 ###Commands:
 
