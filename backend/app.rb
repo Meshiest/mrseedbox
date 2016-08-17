@@ -133,7 +133,6 @@ Thread.start {
       now = Time.now.to_i
       feeds.each do |feed|
         shouldUpdateFeed = false
-        puts "#{feed['update_duration'] * 60 + (feed['last_update'] || 0)} VS #{now}"
         if feed['update_duration'] * 60 + (feed['last_update'] || 0) < now
           begin
             feedData = RSS::Parser.parse(feed['uri'])
@@ -630,6 +629,7 @@ class Server < Sinatra::Base
         }.to_json
       end
       $mysql.query("DELETE FROM users WHERE id=#{target_id};")
+      $mysql.query("DELETE FROM user_listeners WHERE user_id=#{target_id};")
       if $mysql.query("SELECT COUNT(*) FROM users").first["COUNT(*)"] == 0
         $firstUser = true
       end
@@ -786,6 +786,7 @@ class Server < Sinatra::Base
       end
 
       $mysql.query("DELETE FROM listeners WHERE id=#{target_id};")
+      $mysql.query("DELETE FROM user_listeners WHERE listener_id=#{target_id};")
       status 200
       {
         status: 200,
@@ -941,7 +942,9 @@ class Server < Sinatra::Base
         }.to_json
       end
       
+      $mysql.query("DELETE FROM user_listeners WHERE listener_id=ANY (SELECT id FROM listeners WHERE feed_id=#{target_id});")
       $mysql.query("DELETE FROM feeds WHERE id=#{target_id};")
+      $mysql.query("DELETE FROM listeners WHERE feed_id=#{target_id};")
       status 200
       {
         status: 200,
@@ -1067,7 +1070,7 @@ class Server < Sinatra::Base
           message: "Invalid Parameters",
         }.to_json
       end
-      unless $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};").first
+      unless $mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id} AND listener_id=#{target_id};").size > 0
         status 404
         return {
           status: 404,

@@ -75,6 +75,10 @@
       controller: 'TorrentCtrl',
       templateUrl: '/views/torrents.html'
     }).
+    when('/subscriptions', {
+      controller: 'SubscriptionCtrl',
+      templateUrl: '/views/subscriptions.html'
+    }).
     when('/users', {
       controller: 'UserCtrl',
       templateUrl: '/views/users.html'
@@ -517,10 +521,104 @@
 
   })
 
+  app.controller('SubscriptionCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
+    $scope.listeners = []
+    $scope.user_listeners = []
+
+
+    var updateInterval
+
+    var update = function () {
+      $timeout.cancel(updateInterval)
+
+      $http.get('/api/listeners').success(function(listeners){
+        var listenerMap = {}
+        for(var i in $scope.listeners) {
+          var listener = $scope.listeners[i]
+          listener.delete_flag = true
+          listenerMap[listener.id] = listener
+        }
+        for(var i in listeners) {
+          var listener = listeners[i]
+          var exist = listenerMap[listener.id]
+          if(exist) {
+            exist.name = listener.name
+            exist.pattern = listener.pattern
+            exist.feed_id = listener.feed_id
+            delete exist.delete_flag
+          } else {
+            listenerMap[listener.id] = listener
+            $scope.listeners.push(listener)
+          }
+        }
+        for(var i = 0; i < $scope.listeners.length; i++) {
+          var listener = $scope.listeners[i]
+          if(listener.delete_flag) {
+            $scope.listeners.splice(i--, 1)
+          }
+        }
+      }).success(function() {
+        $http.get('/api/user/listeners').success(function(user_listeners){
+          $scope.user_listeners = user_listeners;
+          var sub_map = {};
+          for(var i in user_listeners) {
+            var sub = user_listeners[i];
+            sub_map[sub.listener_id] = sub;
+          }
+          for(var i in $scope.listeners) {
+            var listener = $scope.listeners[i];
+            listener.sub = sub_map[listener.id];
+          }
+          updateInterval = $timeout(update, 20000)
+        }).error(function(err){
+          if(err.status == 401)
+            location.href='/logout'
+          updateInterval = $timeout(update, 5000)
+        })
+
+      }).error(function(err){
+        if(err.status == 401)
+          location.href='/logout'
+        updateInterval = $timeout(update, 5000)
+      })
+
+    }
+
+    $scope.updateSub = function(listener) {
+      var time = listener.last_update > listener.sub.last_seen ? Math.floor(Date.now()/1000) : listener.last_update - 5
+      $http({url: "/api/user/listeners/" + listener.id, method: "PUT", params: {time: time}}).success(function(){
+        $mdToast.show(
+          $mdToast.simple()
+            .textContent('Updated Subscription')
+            .position('bottom left')
+            .hideDelay(3000)
+        )
+        listener.sub.last_seen = time
+      }).error(function(err) {
+        if(err.status == 401)
+          location.href='/logout'
+
+        $mdToast.show(
+          $mdToast.simple()
+            .textContent('Error Updating Subscription: ',err.message)
+            .position('bottom left')
+            .hideDelay(3000)
+        )
+      })
+    }
+
+    update()
+
+    $scope.$on('$routeChangeStart', function () {
+      $timeout.cancel(updateInterval)
+    })
+  })
+
   app.controller('FeedCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
 
     $scope.feeds = []
     $scope.listeners = []
+    $scope.user_listeners = []
 
     var updateInterval
 
@@ -554,22 +652,23 @@
             $scope.feeds.splice(i--, 1)
           }
         }
+        var listenerMap = {}
         $http.get('/api/listeners').success(function(listeners){
-          var map = {}
           for(var i in $scope.listeners) {
             var listener = $scope.listeners[i]
             listener.delete_flag = true
-            map[listener.id] = listener
+            listenerMap[listener.id] = listener
           }
           for(var i in listeners) {
             var listener = listeners[i]
-            var exist = map[listener.id]
+            var exist = listenerMap[listener.id]
             if(exist) {
               exist.name = listener.name
               exist.pattern = listener.pattern
               exist.feed_id = listener.feed_id
               delete exist.delete_flag
             } else {
+              listenerMap[listener.id] = listener
               $scope.listeners.push(listener)
             }
           }
@@ -580,7 +679,24 @@
             }
           }
         }).success(function() {
-          updateInterval = $timeout(update, 20000)
+          $http.get('/api/user/listeners').success(function(user_listeners){
+            $scope.user_listeners = user_listeners;
+            var sub_map = {};
+            for(var i in user_listeners) {
+              var sub = user_listeners[i];
+              sub_map[sub.listener_id] = sub;
+            }
+            for(var i in $scope.listeners) {
+              var listener = $scope.listeners[i];
+              listener.sub = sub_map[listener.id];
+            }
+            updateInterval = $timeout(update, 20000)
+          }).error(function(err){
+            if(err.status == 401)
+              location.href='/logout'
+            updateInterval = $timeout(update, 5000)
+          })
+
         }).error(function(err){
           if(err.status == 401)
             location.href='/logout'
@@ -602,6 +718,28 @@
     $scope.$on('$routeChangeStart', function () {
       $timeout.cancel(updateInterval)
     })
+
+    $scope.toggleListener = function(listener) {
+      $http({url: "/api/user/listeners"+(listener.sub ? "/" + listener.id : ""), method: (listener.sub ? "DELETE" : "POST"), params: {listener_id: listener.id}}).success(function(){
+        $mdToast.show(
+          $mdToast.simple()
+            .textContent((listener.sub?"Removing":"Adding")+' Subscription')
+            .position('bottom left')
+            .hideDelay(3000)
+        )
+        listener.sub = !listener.sub;
+      }).error(function(err) {
+        if(err.status == 401)
+          location.href='/logout'
+
+        $mdToast.show(
+          $mdToast.simple()
+            .textContent('Error '+(listener.sub?"Removing":"Adding")+' Subscription: ',err.message)
+            .position('bottom left')
+            .hideDelay(3000)
+        )
+      })
+    }
 
     $scope.showFeedDialog = function(ev, feed){
       var editing = !!feed;
@@ -653,7 +791,7 @@
     }
 
 
-    $scope.removeFeed = function(ev, user) {
+    $scope.removeFeed = function(ev, feed) {
       var confirm = $mdDialog.confirm()
         .title('Confirm Removal')
         .textContent('Are you certain you want to remove this feed?')
@@ -734,7 +872,7 @@
     }
 
 
-    $scope.removeListener = function(ev, user) {
+    $scope.removeListener = function(ev, listener) {
       var confirm = $mdDialog.confirm()
         .title('Confirm Removal')
         .textContent('Are you certain you want to remove this listener?')
@@ -743,7 +881,7 @@
         .ok('Yes')
         .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/listeners/"+user.id, method: "DELETE"}).success(function(){
+        $http({url: "/api/listeners/"+listener.id, method: "DELETE"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing Listener')

@@ -1,0 +1,28 @@
+<div style='max-height: calc(100% - 64px); overflow-y: auto;'>
+  <div style='text-align: center; padding: 2em; font-size: 2em; color: #999;' flex ng-hide='user_listeners.length'>
+    Nothing Here!
+  </div>
+
+  <md-card ng-repeat='listener in listeners | orderBy:"sub.last_seen-last_update"' ng-if='listener.sub'>
+    <md-toolbar ng-class="{'md-hue-1': listener.sub.last_seen>listener.last_update}">
+      <div class='md-toolbar-tools' layout='row'>
+        <div layout='row' flex='50'>
+          <div layout='column' style='margin-top: 4px;'>
+            <div>{{listener.name}}</div>
+            <div style='font-size: 0.5em;'>Pattern: /{{listener.pattern}}/i</div>
+          </div>
+        </div>
+        <div layout='column' flex='30'>
+          <div style='font-size: 0.75em;'>Updated {{listener.last_update | ago}}</div>
+          <div style='font-size: 0.75em;'>Watched {{listener.sub.last_seen | ago}}</div>
+        </div>
+        <div layout='row' layout-align='end' flex='20'>
+          <md-button class='md-icon-button' ng-click='updateSub(listener)' ng-if='level >= PERMISSIONS.EDIT_SUBSCRIPTION'>
+            <md-icon>
+              {{listener.last_update >= listener.sub.last_seen ? 'visibility_off' : 'visibility'}}
+            </md-icon>
+          </md-button>
+        </div>
+    </md-toolbar>
+  </md-card>
+</div>

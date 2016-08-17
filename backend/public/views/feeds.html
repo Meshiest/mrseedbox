@@ -1,4 +1,4 @@
-<div>
+<div style='max-height: calc(100% - 64px); overflow-y: auto;'>
   <div style='text-align: center; padding: 2em; font-size: 2em; color: #999;' flex ng-hide='feeds.length'>
     Nothing Here!
   </div>
@@ -39,14 +39,21 @@
     <md-card-content style='padding: 0;'>
       <md-list style='padding: 0;'>
         <md-list-item ng-repeat='listener in listeners' ng-if='listener.feed_id==feed.id' layout='row'>
-          <div layout='column' style='padding-left: 1em;' flex='50'>
-            <div>{{listener.name}}</div>
-            <div style='font-size: 0.5em;'>Pattern: /{{listener.pattern}}/i</div>
+          <div layout='row' flex='50'>
+            <md-button class='md-icon-button' ng-click='toggleListener(listener)' ng-if='level >= PERMISSIONS.EDIT_SUBSCRIPTION'>
+              <md-icon>
+                {{listener.sub ? 'star' : 'star_border'}}
+              </md-icon>
+            </md-button>
+            <div layout='column' style='margin-top: 4px;'>
+              <div>{{listener.name}}</div>
+              <div style='font-size: 0.5em;'>Pattern: /{{listener.pattern}}/i</div>
+            </div>
           </div>
           <div layout='column' flex='30'>
             <div style='font-size: 0.75em;'>Updated {{listener.last_update | ago}}</div>
           </div>
-          <div layout='row' flex='20' layout-align='end'>
+          <div layout='row' layout-align='end' flex='20'>
             <md-button class='md-icon-button' ng-click='removeListener($event, listener)' ng-if='level >= PERMISSIONS.EDIT_LISTENER'>
               <md-icon>
               delete
