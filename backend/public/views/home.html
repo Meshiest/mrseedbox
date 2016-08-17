@@ -1,9 +1,8 @@
-<div style='max-height: calc(100% - 64px); overflow-y: auto;'>
 
 <form name="msgForm" ng-submit='sendMessage()' autocomplete="off">
   <md-toolbar>
     <div class='md-toolbar-tools'>
-      <md-input-container class='md-block' flex>
+      <md-input-container class='md-block' flex style='margin: 0;'>
         <md-icon style='color: #fff;'>
           chat
         </md-icon>
@@ -13,17 +12,23 @@
   </md-toolbar>
 </form>
 
+<div style='max-height: calc(100% - 128px); overflow-y: auto;'>
+
   <div style='text-align: center; padding: 2em; font-size: 2em; color: #999;' flex ng-hide='messages.length'>
     Nothing Here!
   </div>
 
   <md-card ng-repeat='msg in messages | orderBy:$index:true' layout='row' layout-padding>
-    <div flex='20' layout='column'>
-      <div>#{{msg.user_id}}</div>
-      <div style='font-size: 0.5em;'>{{msg.time | ago}}</div>
-    </div>
-    <div flex='80'>
-      {{msg.message}}
+    <div layout='column' flex>
+      <div layout='row'>
+        <div flex='10' style='text-align: right; padding-right: 1em;'>
+          #{{msg.user_id}}
+        </div>
+        <div flex='90'>
+          {{msg.message}}
+        </div>
+      </div>
+      <div style='font-size: 0.5em; text-align: right;'>{{msg.time | ago}}</div>
     </div>
   </md-card>
 
