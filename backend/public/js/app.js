@@ -65,7 +65,7 @@
 
     $routeProvider.
     when('/', {
-      redirectTo: '/torrents'
+      redirectTo: '/home'
     }).
     when('/home', {
       controller: 'HomeCtrl',
@@ -181,7 +181,7 @@
     $scope.lastUpdate = 0
 
     var updateInterval
-    
+
     $scope.message = ''
     $scope.pending = false
     $scope.sendMessage = function() {
