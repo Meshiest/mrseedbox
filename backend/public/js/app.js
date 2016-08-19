@@ -236,6 +236,11 @@
   app.controller('TorrentCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
 
     $scope.torrents = []
+    $scope.search = ''
+
+    $scope.getOrder = function () {
+      return $scope.search.length ? "name" : "id"
+    }
 
     var updateInterval
 
