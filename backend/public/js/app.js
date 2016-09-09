@@ -159,21 +159,7 @@
     $scope.level = window.user_level
     $scope.id = window.user_id
 
-    $scope.messages = [];
-    $scope.canUseStream = true;
-    if (typeof(EventSource) !== "undefined") {
-     /* var source = new EventSource('/api/stream');
-
-      source.onmessage = function (event) {
-        var data = JSON.parse(event.data);
-        console.log("Message", data);
-        $scope.messages.push(data);
-        $scope.$apply();
-      }*/
-    } else {
-      $scope.canUseStream = false;
-    }
-
+    $scope.messages = []
   })
 
   app.controller('HomeCtrl', function($scope, $timeout, $http) {
@@ -186,7 +172,7 @@
     $scope.pending = false
     $scope.sendMessage = function() {
       if($scope.message.length < 1 || $scope.message.length > 256)
-        return; 
+        return 
       $scope.pending = true
       $http({url:'/api/messages',method:'POST',params:{msg: $scope.message}}).
       success(function() {
@@ -212,7 +198,7 @@
         for(i in messages) {
           var msg = messages[i]
           if(msg.time > $scope.lastUpdate) {
-            $scope.lastUpdate = msg.time;
+            $scope.lastUpdate = msg.time
             $scope.messages.push(msg)
           }
         }
@@ -240,6 +226,10 @@
 
     $scope.getOrder = function () {
       return $scope.search.length ? "name" : "id"
+    }
+
+    $scope.toggleTorrent = function(torrent) {
+      torrent.toggle = !torrent.toggle
     }
 
     var updateInterval
@@ -344,7 +334,7 @@
         .ariaLabel('Confirm')
         .targetEvent(ev)
         .ok('Yes')
-        .cancel('No');
+        .cancel('No')
       $mdDialog.show(confirm).then(function() {
         $http({url: "/api/torrents/"+torrent.id+"/delete", method: "POST"}).success(function(){
           $mdToast.show(
@@ -366,7 +356,7 @@
           )
         })
       }, function() {
-      });
+      })
     }
 
     $scope.$on('$routeChangeStart', function () {
@@ -443,6 +433,15 @@
     }
   })
 
+  app.filter('byte', function($filter) {
+    return function(bytes) {
+      if(bytes < 1024) return bytes + " B"
+      else if(bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + " KB"
+      else if(bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + " MB"
+      else return ~~(bytes / 1073741824).toFixed(3) + " GB"
+    }
+  })
+
   app.controller('UserCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
 
     $scope.users = []
@@ -495,15 +494,15 @@
     })
 
     $scope.showUserDialog = function(ev, user){
-      var editing = !!user;
-      var id;
+      var editing = !!user
+      var id
       var payload = {
         name: 'User',
         email: '',
         level: 0,
       }
       if(editing) {
-        id = user.id;
+        id = user.id
         payload = {
           name: user.name,
           level: user.level,
@@ -552,7 +551,7 @@
         .ariaLabel('Confirm')
         .targetEvent(ev)
         .ok('Yes')
-        .cancel('No');
+        .cancel('No')
       $mdDialog.show(confirm).then(function() {
         $http({url: "/api/users/"+user.id, method: "DELETE"}).success(function(){
           $mdToast.show(
@@ -574,7 +573,7 @@
           )
         })
       }, function() {
-      });
+      })
     }
 
   })
@@ -617,15 +616,15 @@
         }
       }).success(function() {
         $http.get('/api/user/listeners').success(function(user_listeners){
-          $scope.user_listeners = user_listeners;
-          var sub_map = {};
+          $scope.user_listeners = user_listeners
+          var sub_map = {}
           for(var i in user_listeners) {
-            var sub = user_listeners[i];
-            sub_map[sub.listener_id] = sub;
+            var sub = user_listeners[i]
+            sub_map[sub.listener_id] = sub
           }
           for(var i in $scope.listeners) {
-            var listener = $scope.listeners[i];
-            listener.sub = sub_map[listener.id];
+            var listener = $scope.listeners[i]
+            listener.sub = sub_map[listener.id]
           }
           updateInterval = $timeout(update, 20000)
         }).error(function(err){
@@ -738,15 +737,15 @@
           }
         }).success(function() {
           $http.get('/api/user/listeners').success(function(user_listeners){
-            $scope.user_listeners = user_listeners;
-            var sub_map = {};
+            $scope.user_listeners = user_listeners
+            var sub_map = {}
             for(var i in user_listeners) {
-              var sub = user_listeners[i];
-              sub_map[sub.listener_id] = sub;
+              var sub = user_listeners[i]
+              sub_map[sub.listener_id] = sub
             }
             for(var i in $scope.listeners) {
-              var listener = $scope.listeners[i];
-              listener.sub = sub_map[listener.id];
+              var listener = $scope.listeners[i]
+              listener.sub = sub_map[listener.id]
             }
             updateInterval = $timeout(update, 20000)
           }).error(function(err){
@@ -785,7 +784,7 @@
             .position('bottom left')
             .hideDelay(3000)
         )
-        listener.sub = !listener.sub;
+        listener.sub = !listener.sub
       }).error(function(err) {
         if(err.status == 401)
           location.href='/logout'
@@ -800,15 +799,15 @@
     }
 
     $scope.showFeedDialog = function(ev, feed){
-      var editing = !!feed;
-      var id;
+      var editing = !!feed
+      var id
       var payload = {
         url: '',
         name: 'Feed',
         duration: 15
       }
       if(editing) {
-        id = feed.id;
+        id = feed.id
         payload = {
           url: feed.uri,
           name: feed.name,
@@ -856,7 +855,7 @@
         .ariaLabel('Confirm')
         .targetEvent(ev)
         .ok('Yes')
-        .cancel('No');
+        .cancel('No')
       $mdDialog.show(confirm).then(function() {
         $http({url: "/api/feeds/"+feed.id, method: "DELETE"}).success(function(){
           $mdToast.show(
@@ -878,19 +877,19 @@
           )
         })
       }, function() {
-      });
+      })
     }
 
     $scope.showListenerDialog = function(ev, feed, listener){
-      var editing = !!listener;
-      var id;
+      var editing = !!listener
+      var id
       var payload = {
         feed_id: feed.id,
         name: 'Listener',
         pattern: '.'
       }
       if(editing) {
-        id = listener.id;
+        id = listener.id
         payload = {
           name: listener.name,
           pattern: listener.pattern
@@ -937,7 +936,7 @@
         .ariaLabel('Confirm')
         .targetEvent(ev)
         .ok('Yes')
-        .cancel('No');
+        .cancel('No')
       $mdDialog.show(confirm).then(function() {
         $http({url: "/api/listeners/"+listener.id, method: "DELETE"}).success(function(){
           $mdToast.show(
@@ -959,7 +958,7 @@
           )
         })
       }, function() {
-      });
+      })
     }
 
   })

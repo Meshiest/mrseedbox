@@ -18,7 +18,7 @@
   <md-card ng-repeat='torrent in torrents | filter:{name: search} | orderBy:getOrder():true' layout='column'>
     <md-toolbar md-theme='status_{{torrent.status}}'>
       <div class='md-toolbar-tools' layout='row'>
-        <div style='font-size: 0.75em'>
+        <div style='font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;'>
           {{torrent.name}}
         </div>
         <span flex></span>
@@ -32,14 +32,36 @@
             {{ torrent.status == "seeding" || torrent.status == "downloading" || torrent.status != "stopped" ? "pause" : "play_arrow" }}
           </md-icon>
         </md-button>
-        <md-button class='md-icon-button' ng-show='getProgress(torrent) == 100' ng-href='/api/dl?file={{torrent.files[0].name}}' target='_blank'>
+        <md-button class='md-icon-button' ng-show='getProgress(torrent) == 100 && torrent.files.length == 1' ng-href='/api/dl?file={{torrent.files[0].name}}' target='_blank'>
           <md-icon>
             file_download
+          </md-icon>
+        </md-button>
+        <md-button class='md-icon-button' ng-show='getProgress(torrent) == 100 && torrent.files.length > 1' ng-click='toggleTorrent(torrent)' style='margin-right: 6px !important;'>
+          <md-icon>
+            {{ torrent.toggle ? 'expand_less' : 'expand_more' }}
           </md-icon>
         </md-button>
       </div>
     </md-toolbar>
     <md-progress-linear md-theme="status_seeding" ng-hide='getProgress(torrent) == 100' md-mode="determinate" value="{{getProgress(torrent)}}"></md-progress-linear>
+    <md-list flex ng-show='torrent.toggle'>
+      <md-list-item ng-repeat='file in torrent.files' layout='row'>
+        <div flex=90 layout='column' style='padding-left: 1em;'>
+          <div style='font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;'>
+            {{file.name}}
+          </div>
+          <div style='font-size: 0.5em;'>
+            {{file.total | byte}}
+          </div>
+        </div>
+        <div flex=10>
+          <md-button class='md-icon-button' ng-href='/api/dl?file={{file.name}}'>
+            <md-icon>file_download</md-icon>
+          </md-button>
+        </div>
+      </md-list-item>
+    </md-list>
   </md-card>
 </div>
 

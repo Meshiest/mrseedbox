@@ -332,7 +332,7 @@ class Server < Sinatra::Base
       }.to_json
     else 
       status 200
-      Dir["/transmission/downloads/*"].map{|i|i[('/transmission/downloads/'.length)..-1]}.to_json
+      Dir["/transmission/downloads/**/*"].map{|i|i[('/transmission/downloads/'.length)..-1]}.to_json
     end
   end
 
@@ -347,7 +347,7 @@ class Server < Sinatra::Base
       }.to_json
     end
     file = URI.decode(params[:file])
-    files = Dir["/transmission/downloads/*"].map{|i|i[('/transmission/downloads/'.length)..-1]}
+    files = Dir["/transmission/downloads/**/*"].map{|i|i[('/transmission/downloads/'.length)..-1]}
     if files.include?(file)
       send_file '/transmission/downloads/'+file, {:filename => "#{file}", :stream => true}
     else
