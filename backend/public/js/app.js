@@ -234,6 +234,17 @@
 
     var updateInterval
 
+    function sanitizeNames(files) {
+      for(var i = 0; i < files.length; i++) {
+        var name = files[i].name;
+        name = encodeURI(name)
+          .replace(/&/g, '%26')
+          .replace(/;/g, '%3B');
+        files[i].name = name;
+      }
+      return files;
+    }
+
     var update = function () {
       $timeout.cancel(updateInterval)
 
@@ -251,7 +262,7 @@
             exist.name = torrent.name
             exist.state = torrent.state
             exist.status = torrent.status
-            exist.files = torrent.files
+            exist.files = sanitizeNames(torrent.files)
             delete exist.delete_flag
           } else {
             $scope.torrents.push(torrent)
