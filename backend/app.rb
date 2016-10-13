@@ -4,6 +4,7 @@ require 'trans-api'
 require 'oauth2'
 require 'mysql2'
 require 'open-uri'
+require 'open_uri_redirections'
 require 'rss'
 require 'json'
 require 'sinatra/base'
@@ -148,7 +149,10 @@ Thread.start {
         shouldUpdateFeed = false
         if feed['update_duration'] * 60 + (feed['last_update'] || 0) < now
           begin
-            feedData = RSS::Parser.parse(feed['uri'])
+            feedData = nil
+            open(feed['uri'], {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE, :allow_redirections => :safe}) do |rss|
+              feedData = RSS::Parser.parse(rss)
+            end
             mysql.query("SELECT * FROM listeners WHERE feed_id=#{feed['id']};").each do |listener|
               pattern = /#{listener['pattern']}/i
               shouldUpdate = false
@@ -906,8 +910,11 @@ class Server < Sinatra::Base
           message: "Invalid Parameters (Bad name(#{/^[a-z0-9_-]{1,48}$/i.match(name)}) or uri",
         }.to_json
       end
-      begin 
-        parsed = RSS::Parser.parse(uri)
+      begin
+        feedData = nil
+        open(feed['uri'], {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE, :allow_redirections => :safe}) do |rss|
+          feedData = RSS::Parser.parse(rss)
+        end
       rescue
         status 422
         return {
