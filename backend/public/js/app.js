@@ -174,7 +174,10 @@
       if($scope.message.length < 1 || $scope.message.length > 256)
         return 
       $scope.pending = true
-      $http({url:'/api/messages',method:'POST',params:{msg: $scope.message}}).
+      var message = encodeURI($scope.message)
+        .replace(/&/g, '%26')
+        .replace(/;/g, '%3B');
+      $http({url:'/api/messages',method:'POST',params:{msg: message}}).
       success(function() {
         $scope.pending = false
         $scope.message = ''
@@ -197,6 +200,7 @@
       $http.get('/api/messages').success(function(messages){
         for(i in messages) {
           var msg = messages[i]
+          msg.message = decodeURIComponent(msg.message)
           if(msg.time > $scope.lastUpdate) {
             $scope.lastUpdate = msg.time
             $scope.messages.push(msg)

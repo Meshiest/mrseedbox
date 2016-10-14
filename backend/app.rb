@@ -132,6 +132,12 @@ CREATE TABLE IF NOT EXISTS user_listeners (
   listener_id INT NOT NULL,
   last_seen BIGINT
 );""")
+mysql.query("""
+CREATE TABLE IF NOT EXISTS messages (
+  user_id INT NOT NULL,
+  message VARCHAR(256) NOT NULL,
+  time BIGINT
+);""")
 
 $firstUser = mysql.query("SELECT COUNT(*) FROM users").first["COUNT(*)"] == 0
 if $firstUser
@@ -284,14 +290,19 @@ class Server < Sinatra::Base
       }.to_json
     else 
       status 200
-      $messages.to_json
+      result = mysql.query("SELECT * FROM messages;")
+      messages = []
+      result.each do |message|
+        messages << message
+      end
+      messages.to_json
     end
   end
 
   post '/api/messages' do 
     user_id = session[:user_id]
     content_type :json
-    if !hasPerm user_id, :READ_TORRENT
+    if !hasPerm user_id, :EDIT_TORRENT
       status 401
       {
         status: 401,
@@ -306,14 +317,8 @@ class Server < Sinatra::Base
           message: "Invalid Message",
         }.to_json
       else
-        $messages << {
-          user_id: user_id,
-          message: msg,
-          time: Time.now.to_i,
-        }
-        if $messages.length > 20
-          $messages = $messages[1..-1]
-        end
+        msg = Mysql2::Client.escape(msg)
+        mysql.query("INSERT INTO messages (user_id,message,time) VALUES (#{user_id},'#{msg}','#{Time.now.to_i}')")
         status 200
         {
           status: 200,
