@@ -240,7 +240,7 @@
         name = encodeURI(name)
           .replace(/&/g, '%26')
           .replace(/;/g, '%3B');
-        files[i].name = name;
+        files[i].link = name;
       }
       return files;
     }

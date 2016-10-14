@@ -32,7 +32,7 @@
             {{ torrent.status == "seeding" || torrent.status == "downloading" || torrent.status != "stopped" ? "pause" : "play_arrow" }}
           </md-icon>
         </md-button>
-        <md-button class='md-icon-button' ng-show='getProgress(torrent) == 100 && torrent.files.length == 1' ng-href='/api/dl?file={{torrent.files[0].name}}' target='_blank'>
+        <md-button class='md-icon-button' ng-show='getProgress(torrent) == 100 && torrent.files.length == 1' ng-href='/api/dl?file={{torrent.files[0].link}}' target='_blank'>
           <md-icon>
             file_download
           </md-icon>
@@ -56,7 +56,7 @@
           </div>
         </div>
         <div flex=10>
-          <md-button class='md-icon-button' ng-href='/api/dl?file={{file.name}}'>
+          <md-button class='md-icon-button' ng-href='/api/dl?file={{file.link}}'>
             <md-icon>file_download</md-icon>
           </md-button>
         </div>

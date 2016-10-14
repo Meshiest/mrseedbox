@@ -50,7 +50,7 @@ TRANSMISSION_CONFIG = {
 
 puts "Setting up Transmission"
 Trans::Api::Client.config = TRANSMISSION_CONFIG
-Trans::Api::Torrent.default_fields = [ :id, :status, :name ]
+Trans::Api::Torrent.default_fields = [ :id, :status, :name, :files ]
 
 # oauth2 client w/ google
 
@@ -382,19 +382,25 @@ class Server < Sinatra::Base
       if !@lastTorrentTime || @lastTorrentTime && @lastTorrentTime + 1.5 < now
         torrents = []
         @lastTorrentTime = now
-        Trans::Api::Torrent.all.each do |torrent|
-          torrents << {
-            id: torrent.id,
-            name: torrent.name,
-            state: torrent.status,
-            status: torrent.status_name,
-            files: torrent.files_objects.map{|f|{
-                name: f.name,
-                downloaded: f.bytes_completed,
-                total: f.bytes_total,
-              }
-            },
-          }
+        torrentList = []
+        begin
+          Trans::Api::Torrent.all.each do |torrent|
+            fields =  torrent.fields
+            torrents << {
+              id: fields[:id],
+              name: fields[:name],
+              state: fields[:status],
+              status: Trans::Api::Torrent::STATUS[fields[:status]],
+              files: fields[:files].map{|f|{
+                  name: f[:name],
+                  downloaded: f[:bytesCompleted],
+                  total: f[:length],
+                }
+              },
+            }
+          end
+        rescue
+          puts "Failed Fetching", $!.backtrace
         end
         @lastTorrent = torrents
         return torrents.to_json
