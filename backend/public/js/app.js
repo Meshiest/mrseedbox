@@ -198,6 +198,7 @@
       $timeout.cancel(updateInterval)
 
       $http.get('/api/messages').success(function(messages){
+        messages = messages.reverse()
         for(i in messages) {
           var msg = messages[i]
           msg.message = decodeURIComponent(msg.message)

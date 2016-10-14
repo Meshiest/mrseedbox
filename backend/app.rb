@@ -290,7 +290,7 @@ class Server < Sinatra::Base
       }.to_json
     else 
       status 200
-      result = mysql.query("SELECT * FROM messages;")
+      result = mysql.query("SELECT * FROM messages ORDER BY time DESC LIMIT 30;")
       messages = []
       result.each do |message|
         messages << message
@@ -302,7 +302,7 @@ class Server < Sinatra::Base
   post '/api/messages' do 
     user_id = session[:user_id]
     content_type :json
-    if !hasPerm user_id, :EDIT_TORRENT
+    if !hasPerm user_id, :READ_TORRENT
       status 401
       {
         status: 401,
