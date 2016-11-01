@@ -18,8 +18,18 @@
   <md-card ng-repeat='torrent in torrents | filter:{name: search} | orderBy:getOrder():true' layout='column'>
     <md-toolbar md-theme='status_{{torrent.status}}'>
       <div class='md-toolbar-tools' layout='row'>
-        <div style='font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;'>
-          {{torrent.name}}
+        <div layout='column'>
+          <div style='font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;'>
+            {{torrent.name}}
+          </div>
+          <div ng-if='torrent.files.length == 1' style='font-size: 0.5em;'>
+            <span ng-show='torrent.status == "downloading"'>
+              {{torrent.files[0].downloaded | byte}} /
+            </span>
+            <span>
+              {{torrent.files[0].total | byte}}
+            </span>
+          </div>
         </div>
         <span flex></span>
         <md-button class='md-icon-button' ng-if='level >= PERMISSIONS.EDIT_TORRENT' ng-click='removeTorrent($event, torrent)'>

@@ -1,7 +1,5 @@
 ## Mr Seedbox
 
-This is a readme I made in a rush, I will be adding more things in right now.
-
 ![](http://i.imgur.com/WDeD1Is.png)
 ![](http://i.imgur.com/tMiGwxQ.png)
 ![](http://i.imgur.com/jmW8KzM.png)
@@ -23,6 +21,7 @@ This is a readme I made in a rush, I will be adding more things in right now.
 * `cp docker-compose.yml.default docker-compose.yml`
 * Edit your docker-compose.yml and common.env files (put google api client and secret in)
 * Generate a SSL Cert: `./setup`
+* `cp settings.json transmission/config/settings.json` (and make neccessary dirs)
 
 ###Commands:
 
@@ -36,3 +35,4 @@ This is a readme I made in a rush, I will be adding more things in right now.
 * `docker logs -f mrseedbox_backend_1` - read logs from sinatra server
 * `docker ps` - list containers
 * `docker exec -it mrseedbox_backend_1 bash` - get a shell in the backend container
+* You should know that creating a `debug` file in the backend folder will prevent authentication

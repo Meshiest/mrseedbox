@@ -204,13 +204,19 @@ def addUserToDb email, name, level
 end
 
 def updateUserStatus user_id
+  return unless user_id
   begin
     mysql.query("UPDATE users SET last_online=#{Time.now.to_i} WHERE id=#{user_id};")
   rescue
   end
 end
 
+def isDebug
+  File.exists?('debug')
+end
+
 def hasPerm user_id, permission
+  return true if isDebug
   user = mysql.query("SELECT * FROM users WHERE id='#{user_id}';").first
   return false unless user
   return PERMISSIONS[permission] <= user['level']
@@ -251,7 +257,10 @@ class Server < Sinatra::Base
   set :sessions, true
 
   get '/' do
-    if session[:user_id]
+    if isDebug
+      @user = {'id' => 0, 'name' => 'Debug', 'email' => 'debug@debug.debug', 'level' => 3}
+      erb :index
+    elsif session[:user_id]
       @user = mysql.query("SELECT * FROM users WHERE id=#{session[:user_id]};").first
       if !@user
         session.delete(:user_id)
@@ -1049,7 +1058,14 @@ class Server < Sinatra::Base
     else
       status 200
       updateUserStatus user_id
-      result = mysql.query("SELECT * FROM user_listeners WHERE user_id=#{user_id};")
+
+      query = "SELECT * FROM user_listeners WHERE user_id=#{user_id};"
+
+      if isDebug 
+        query = "SELECT * FROM user_listeners;"
+      end
+
+      result = mysql.query(query)
       listeners = []
       result.each do |listener|
         listeners << listener

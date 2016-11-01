@@ -12,7 +12,7 @@
   </head>
   <body ng-controller='AppCtrl' ng-cloak layout='row'>
     <script>
-      window.user_id = <%= session[:user_id] %>;
+      window.user_id = <%= @user['id'] %>;
       window.user_level = <%= @user['level'] %>;
     </script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.js"></script>
