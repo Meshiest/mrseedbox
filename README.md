@@ -15,6 +15,12 @@
 * Create a Google API Project
 * Add the Google+ API library
 * Generate some Credentials for Oauth2
+  * Application Type:
+    * Web Application
+  * Authorized origins:
+    * `https://localhost` or `https://yourdomain.com`
+  * Authorized redirect URIs:
+    * `https://localhost/oauth2callback` or `https://yourdomain.com/oauth2callback`
 * `git clone https://github.com/Meshiest/mrseedbox.git`
 * `cd mrseedbox`
 * `cp common.env.default common.env`
