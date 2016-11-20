@@ -228,9 +228,18 @@
 
     $scope.torrents = []
     $scope.search = ''
+    $scope.extendLimit = 0;
 
     $scope.getOrder = function () {
       return $scope.search.length ? "name" : "id"
+    }
+
+    $scope.increaseLimit = function() {
+      $scope.extendLimit += 10;
+    }
+
+    $scope.getLimit = function() {
+      return ($scope.search.length ? 30 : 10) + $scope.extendLimit;
     }
 
     $scope.toggleTorrent = function(torrent) {
@@ -279,11 +288,11 @@
             $scope.torrents.splice(i--, 1)
           }
         }
-        updateInterval = $timeout(update, 2000)
+        updateInterval = $timeout(update, 5000)
       }).error(function(err){
         if(err.status == 401)
           location.href='/logout'
-        updateInterval = $timeout(update, 5000)
+        updateInterval = $timeout(update, 10000)
       })
 
     }
