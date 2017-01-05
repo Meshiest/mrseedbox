@@ -1,7 +1,6 @@
 common.env
 docker-compose.yml
-!transmission/config/settings.json
-transmission/**
+rtorrent/**
 mysql/**
 !mysql
 backend/key.pem

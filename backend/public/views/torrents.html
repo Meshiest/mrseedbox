@@ -1,72 +1,75 @@
 <md-toolbar>
-  <div class='md-toolbar-tools'>
-    <md-input-container class='md-block' flex style='margin: 0;'>
-      <md-icon style='color: #fff;'>
+  <div class="md-toolbar-tools">
+    <md-input-container class="md-block" flex style="margin: 0;">
+      <md-icon style="color: #fff;">
         search
       </md-icon>
-      <input style='color: #fff;' type="text" ng-model='search' placeholder='Search' ng-minlength="1" ng-maxlength="256">
+      <input style="color: #fff;" type="text" ng-model="search" placeholder="Search" ng-minlength="1" ng-maxlength="256">
     </md-input-container>
   </div>
 </md-toolbar>
 
-<div style='max-height: calc(100% - 128px); overflow-y: auto;'>
+<div style="max-height: calc(100% - 128px); overflow-y: auto;">
 
-  <div style='text-align: center; padding: 2em; font-size: 2em; color: #999;' flex ng-hide='(torrents | filter:{name: search}).length'>
+  <div style="text-align: center; padding: 2em; font-size: 2em; color: #999;" flex ng-hide="(torrents | filter:{name: search}).length">
     Nothing Here!
   </div>
 
-  <md-card ng-repeat='torrent in torrents | filter:{name: search} | orderBy:getOrder():true' layout='column'>
-    <md-toolbar md-theme='status_{{torrent.status}}'>
-      <div class='md-toolbar-tools' layout='row'>
-        <div layout='column'>
-          <div style='font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;'>
+  <md-card ng-repeat="torrent in torrents | filter:{name: search} | orderBy:getOrder():true" layout="column">
+    <md-toolbar md-theme="status_{{torrent.status}}">
+      <div class="md-toolbar-tools" layout="row">
+        <div layout="column">
+          <div style="font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;">
             {{torrent.name}}
           </div>
-          <div ng-if='torrent.files.length == 1' style='font-size: 0.5em;'>
-            <span ng-show='torrent.status == "downloading"'>
-              {{torrent.files[0].downloaded | byte}} /
+          <div style="font-size: 0.5em;">
+            <span ng-show="torrent.status == 'downloading'">
+              {{torrent.completed}} /
             </span>
             <span>
-              {{torrent.files[0].total | byte}}
+              {{torrent.size}}
             </span>
           </div>
         </div>
         <span flex></span>
-        <md-button class='md-icon-button' ng-if='level >= PERMISSIONS.EDIT_TORRENT' ng-click='removeTorrent($event, torrent)'>
+        <md-button class="md-icon-button" ng-if="level >= PERMISSIONS.EDIT_TORRENT" ng-click="removeTorrent($event, torrent)">
           <md-icon>
             delete
           </md-icon>
         </md-button>
-        <md-button class='md-icon-button' ng-if='level >= PERMISSIONS.EDIT_TORRENT'' ng-click='handleTorrent(torrent)'>
+        <md-button class="md-icon-button" ng-if="level >= PERMISSIONS.EDIT_TORRENT" ng-click="handleTorrent(torrent)">
           <md-icon>
             {{ torrent.status == "seeding" || torrent.status == "downloading" || torrent.status != "stopped" ? "pause" : "play_arrow" }}
           </md-icon>
         </md-button>
-        <md-button class='md-icon-button' ng-show='getProgress(torrent) == 100 && torrent.files.length == 1' ng-href='/api/dl?file={{torrent.files[0].link}}' target='_blank'>
+        <md-button class="md-icon-button" ng-show="torrent.progress == 100 && torrent.files.length == 1" ng-href="/api/dl?file={{torrent.files[0].link}}" target="_blank">
           <md-icon>
             file_download
           </md-icon>
         </md-button>
-        <md-button class='md-icon-button' ng-show='getProgress(torrent) == 100 && torrent.files.length > 1' ng-click='toggleTorrent(torrent)' style='margin-right: 6px !important;'>
+        <md-button class="md-icon-button" ng-show="torrent.files.length > 1" ng-click="toggleTorrent(torrent)" style="margin-right: 6px !important;">
           <md-icon>
             {{ torrent.toggle ? 'expand_less' : 'expand_more' }}
           </md-icon>
         </md-button>
       </div>
     </md-toolbar>
-    <md-progress-linear md-theme="status_seeding" ng-hide='getProgress(torrent) == 100' md-mode="determinate" value="{{getProgress(torrent)}}"></md-progress-linear>
-    <md-list flex ng-show='torrent.toggle'>
-      <md-list-item ng-repeat='file in torrent.files' layout='row'>
-        <div flex=90 layout='column' style='padding-left: 1em;'>
-          <div style='font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;'>
+    <md-progress-linear md-theme="status_seeding" ng-hide="torrent.progress == 100" md-mode="determinate" value="{{torrent.progress}}"></md-progress-linear>
+    <md-list flex ng-show="torrent.toggle">
+      <md-list-item ng-repeat="file in torrent.files" layout="row">
+        <div flex="90" layout="column" style="padding-left: 1em;">
+          <div style="font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;">
             {{file.name}}
           </div>
-          <div style='font-size: 0.5em;'>
-            {{file.total | byte}}
+          <div style="font-size: 0.5em;">
+            <span ng-if="file.progress != 1">
+              {{file.progress * file.size | byte}} / 
+            </span>
+            {{file.size | byte }}
           </div>
         </div>
-        <div flex=10>
-          <md-button class='md-icon-button' ng-href='/api/dl?file={{file.link}}'>
+        <div flex="10">
+          <md-button ng-show="file.progress == 1" class="md-icon-button" ng-href="/api/dl?file={{file.link}}">
             <md-icon>file_download</md-icon>
           </md-button>
         </div>
@@ -75,30 +78,11 @@
   </md-card>
 </div>
 
-<div style='position: absolute; bottom: 1em; right: 1em;'>
-  <md-fab-speed-dial md-open='isOpen' class='md-fling' md-direction='left' ng-if='level >= PERMISSIONS.EDIT_TORRENT'>
-    <md-fab-trigger>
-      <md-button aria-label='menu' class='md-fab md-accent'>
-        <md-icon>add</md-icon>
-      </md-button>
-    </md-fab-trigger>
-    <md-fab-actions>
-      <md-button class='md-fab md-raised md-mini' ng-click='showLinkDialog($event,"magnet")'>
-        <md-icon>
-          link
-        </md-icon>
-        <md-tooltip>
-          Magnet Link
-        </md-tooltip>
-      </md-button>
-      <md-button class='md-fab md-raised md-mini' ng-click='showLinkDialog($event,"url")'>
-        <md-icon>
-          attach_file
-        </md-icon>
-        <md-tooltip>
-          Torrent File Link
-        </md-tooltip>
-      </md-button>
-    </md-fab-actions>
-  </md-fab-speed-dial>
+<div style="position: absolute; bottom: 1em; right: 1em;">
+  <md-button aria-label="menu" class="md-fab md-accent" ng-click="showLinkDialog($event)">
+    <md-icon>add</md-icon>
+    <md-tooltip>
+      Add Torrent
+    </md-tooltip>
+  </md-button>
 </div>

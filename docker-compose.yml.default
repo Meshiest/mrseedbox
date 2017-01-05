@@ -8,23 +8,18 @@ db:
   expose:
     - "3306"
 
-transmission:
-  image: linuxserver/transmission
+rtorrent:
+  image: linuxserver/rutorrent
   restart: always
   volumes:
-    - ./transmission/config:/config
-    - ./transmission/watch:/watch
-    - ./transmission/incomplete:/incomplete
-    - ./transmission/downloads:/downloads
-  expose:
-    - "9091"
+    - ./rtorrent/config:/config
+    - ./rtorrent/downloads:/downloads
   environment:
     PGID: 1000 # get 'gid' from `id <yourusername>`
     PUID: 1000 # get 'uid' from `id <yourusername>`
   ports:
-    - "9091:9091"
-    - "51413:51413"
-    - "51413:51413/udp"
+    - "51413:51413" # Incoming Connections
+    - "6881:6881/udp" # Distributed Hash Table
 
 backend:
   build: "./backend"
@@ -34,9 +29,9 @@ backend:
     - ./common.env
   volumes:
     - ./backend:/app
-    - /transmission:/transmission
+    - ./rtorrent/downloads:/downloads
   ports:
     - "443:443"
   links:
     - db:mysql
-    - transmission:transmission
+    - rtorrent:rtorrent

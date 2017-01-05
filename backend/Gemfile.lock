@@ -1,26 +1,18 @@
-GIT
-  remote: git://github.com/dblommesteijn/trans-api.git
-  revision: 2b1c19db313fe58b5eeaabc8c46155a502260f45
-  specs:
-    trans-api (0.0.6)
-      json (> 1.6.1)
-      nokogiri (> 1.5.0)
-
 GEM
   remote: http://rubygems.org/
   specs:
     faraday (0.9.2)
       multipart-post (>= 1.2, < 3)
-    json (2.0.2)
+    httparty (0.14.0)
+      multi_xml (>= 0.5.2)
     jwt (1.5.4)
     mini_portile2 (2.1.0)
     multi_json (1.12.1)
     multi_xml (0.5.5)
     multipart-post (2.0.0)
     mysql2 (0.4.4)
-    nokogiri (1.6.8)
+    nokogiri (1.7.0.1)
       mini_portile2 (~> 2.1.0)
-      pkg-config (~> 1.1.7)
     oauth2 (1.2.0)
       faraday (>= 0.8, < 0.10)
       jwt (~> 1.0)
@@ -28,7 +20,6 @@ GEM
       multi_xml (~> 0.5)
       rack (>= 1.2, < 3)
     open_uri_redirections (0.2.1)
-    pkg-config (1.1.7)
     rack (1.6.4)
     rack-protection (1.5.3)
       rack
@@ -42,16 +33,16 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  jwt (= 1.5.4)
-  mysql2 (~> 0.4.4)
-  nokogiri (= 1.6.8)
+  httparty (= 0.14.0)
+  mysql2
+  nokogiri
   oauth2
   open_uri_redirections
+  rack
   sinatra
-  trans-api!
 
 RUBY VERSION
-   ruby 2.2.3p173
+   ruby 2.4.0p-1
 
 BUNDLED WITH
-   1.13.3
+   1.13.7

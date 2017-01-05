@@ -6,7 +6,7 @@
 ![](http://i.imgur.com/uWYCPAm.png)
 ![](http://i.imgur.com/relNlJz.png)
 
-##Install process (Still wip, sorry!):
+## Install process (Still wip, sorry!):
 
 1. Be running Linux
 * Install Git
@@ -29,7 +29,7 @@
 * Generate a SSL Cert: `./setup`
 * `cp settings.json transmission/config/settings.json` (and make neccessary dirs)
 
-###Commands:
+### Commands (from shell):
 
 * `./start` - should start and build containers
 * `docker-compose up -d` - same as above
@@ -42,3 +42,17 @@
 * `docker ps` - list containers
 * `docker exec -it mrseedbox_backend_1 bash` - get a shell in the backend container
 * You should know that creating a `debug` file in the backend folder will prevent authentication
+
+## Contributing
+
+### Things You Need
+* You need docker
+
+### Updating the Backend (this is all in the `backend` directory)
+1. Make your changes
+2. Triple check that Gemfile has all the gems
+3. `bundle install` (maybe remove `Gemfile.lock` if something broke)
+  * you might need to do this: `sudo apt-get install libmysqlclient-dev`
+  * you also might need a good old `bundle update` if you get "Your bundle is locked to [gemname]..."
+4. `docker build .`
+5. `./start` from the parent directory and `docker logs -f mrseedbox_backend_1` and check if there were any problems starting the container

@@ -1,10 +1,11 @@
 source "http://rubygems.org"
-ruby '2.2.3'
+ruby '2.4'
 
-gem "sinatra"
-gem "open_uri_redirections"
-gem "trans-api", github: "dblommesteijn/trans-api"
-gem "mysql2", '~> 0.4.4'
-gem "jwt", '1.5.4'
+gem "rack"
+gem "mysql2"
 gem "oauth2"
-gem "nokogiri", '1.6.8'
+gem "open_uri_redirections"
+#gem "retort", "0.0.8"
+gem "sinatra"
+gem "httparty", '0.14.0'
+gem "nokogiri"

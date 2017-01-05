@@ -1,34 +1,34 @@
 
-<form name="msgForm" ng-submit='sendMessage()' autocomplete="off">
+<form name="msgForm" ng-submit="sendMessage()" autocomplete="off">
   <md-toolbar>
-    <div class='md-toolbar-tools'>
-      <md-input-container class='md-block' flex style='margin: 0;'>
-        <md-icon style='color: #fff;'>
+    <div class="md-toolbar-tools">
+      <md-input-container class="md-block" flex style="margin: 0;">
+        <md-icon style="color: #fff;">
           chat
         </md-icon>
-        <input autocomplete="off" ng-disabled='pending' style='color: #fff;' type="text" name='text' ng-model='message' placeholder='Message' ng-minlength="1" ng-maxlength="256">
+        <input autocomplete="off" ng-disabled="pending" style="color: #fff;" type="text" name="text" ng-model="message" placeholder="Message" ng-minlength="1" ng-maxlength="256">
       </md-input-container>
     </div>
   </md-toolbar>
 </form>
 
-<div style='max-height: calc(100% - 128px); overflow-y: auto;'>
+<div style="max-height: calc(100% - 128px); overflow-y: auto;">
 
-  <div style='text-align: center; padding: 2em; font-size: 2em; color: #999;' flex ng-hide='messages.length'>
+  <div style="text-align: center; padding: 2em; font-size: 2em; color: #999;" flex ng-hide="messages.length">
     Nothing Here!
   </div>
 
-  <md-card ng-repeat='msg in messages | orderBy:$index:true' layout='row' layout-padding>
-    <div layout='column' flex>
-      <div layout='row'>
-        <div flex='10' style='text-align: right; padding-right: 1em;'>
+  <md-card ng-repeat="msg in messages | orderBy:$index:true" layout="row" layout-padding>
+    <div layout="column" flex>
+      <div layout="row">
+        <div flex="10" style="text-align: right; padding-right: 1em;">
           #{{msg.user_id}}
         </div>
-        <div flex='90'>
+        <div flex="90">
           {{msg.message}}
         </div>
       </div>
-      <div style='font-size: 0.5em; text-align: right;'>{{msg.time | ago}}</div>
+      <div style="font-size: 0.5em; text-align: right;">{{msg.time | ago}}</div>
     </div>
   </md-card>
 
