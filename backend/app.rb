@@ -416,8 +416,6 @@ class Server < Sinatra::Base
   get '/api/files' do
     user_id = session[:user_id]
     content_type :json
-    puts "Files"
-    puts Dir["/downloads/*"]
 
     if !hasPerm user_id, :READ_TORRENT
       status 401
@@ -479,13 +477,14 @@ class Server < Sinatra::Base
               info_hash: torrent.info_hash,
               creationDate: torrent.creation_date,
               size: torrent.size,
-              completed: torrent.completed,
+              ratio: torrent.completed_ratio,
               name: torrent.torrent_name,
               state: torrent.status,
-              complete: torrent.complete,
+              completed: torrent.completed,
               status: (!torrent.is_active ? 'stopped' : (torrent.complete == 1 ? 'seeding' : 'downloading')),
               files: torrent.files.map{|f|{
                   name: f[:path],
+                  path: f[:frozen_path].gsub(/^\/downloads\//,''),
                   size: f[:size_bytes],
                   completedChunks: f[:completed_chunks],
                   totalChunks: f[:size_chunks],
@@ -518,12 +517,13 @@ class Server < Sinatra::Base
       begin
 
         $xmlrpc.call('load_start', URI.decode(params[:url]))
-        status 200,
+        status 200
         {
           status: 200,
           message: "OK",
         }.to_json
       rescue
+        puts $!.backtrace
         status 500,
         {
           status: 500,

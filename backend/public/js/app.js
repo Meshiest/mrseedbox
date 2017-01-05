@@ -142,7 +142,7 @@
       path: '/torrents',
       perm: PERMISSIONS.READ_TORRENT,
     }, {
-      title: 'ruTorrent',
+      title: 'RuTorrent',
       icon: 'library_books',
       path: '/rutorrent',
       perm: PERMISSIONS.EDIT_TORRENT,
@@ -258,11 +258,9 @@
 
     function sanitizeNames(files) {
       for(var i = 0; i < files.length; i++) {
-        var name = files[i].name;
-        name = encodeURI(name)
+        files[i].link = encodeURI(files[i].path)
           .replace(/&/g, '%26')
           .replace(/;/g, '%3B');
-        files[i].link = name;
       }
       return files;
     }
@@ -283,9 +281,13 @@
           var exist = map[torrent.info_hash];
           if(exist) {
             exist.name = torrent.name;
+            exist.size = torrent.size;
+            exist.ratio = torrent.ratio;
             exist.state = torrent.state;
             exist.status = torrent.status;
             exist.progress = torrent.progress;
+            exist.completed = torrent.completed;
+            exist.creationDate = torrent.creationDate;
             exist.files = sanitizeNames(torrent.files);
             delete exist.delete_flag;
           } else {
@@ -308,14 +310,6 @@
     };
 
     update();
-
-    $scope.handleTorrent = function(torrent) {
-      if (torrent.status == "seeding" || torrent.status == "downloading" || torrent.status != "stopped") {
-        $scope.stopTorrent(torrent);
-      } else {
-        $scope.startTorrent(torrent);
-      }
-    };
 
     $scope.startTorrent = function(torrent) {
       $http({url: "/api/torrents/"+torrent.info_hash+"/start", method: "POST"}).success(function(){
@@ -480,6 +474,13 @@
       else return ~~(bytes / 1073741824).toFixed(3) + " GB";
     };
   });
+
+  app.filter('round', function($filter) {
+    return function(num) {
+      return ~~(num*100)/100;
+    };
+  });
+
 
   app.controller('UserCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
 

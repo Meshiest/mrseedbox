@@ -27,21 +27,11 @@
               {{torrent.completed}} /
             </span>
             <span>
-              {{torrent.size}}
+              {{torrent.size}} ({{torrent.ratio | round}})
             </span>
           </div>
         </div>
         <span flex></span>
-        <md-button class="md-icon-button" ng-if="level >= PERMISSIONS.EDIT_TORRENT" ng-click="removeTorrent($event, torrent)">
-          <md-icon>
-            delete
-          </md-icon>
-        </md-button>
-        <md-button class="md-icon-button" ng-if="level >= PERMISSIONS.EDIT_TORRENT" ng-click="handleTorrent(torrent)">
-          <md-icon>
-            {{ torrent.status == "seeding" || torrent.status == "downloading" || torrent.status != "stopped" ? "pause" : "play_arrow" }}
-          </md-icon>
-        </md-button>
         <md-button class="md-icon-button" ng-show="torrent.progress == 100 && torrent.files.length == 1" ng-href="/api/dl?file={{torrent.files[0].link}}" target="_blank">
           <md-icon>
             file_download
