@@ -1,6 +1,5 @@
 #\ -p 443 -o 0.0.0.0
 require 'rubygems'
-#require 'bundler'
 
 $stdout.sync = true
  
