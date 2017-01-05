@@ -146,8 +146,9 @@ $firstUser = mysql.query("SELECT COUNT(*) FROM users").first["COUNT(*)"] == 0
 if $firstUser
   puts "First user to sign in will be made the owner."
 end
-=begin
+
 # feed loop
+# might as well keep the existing rss feeds because they are pretty nifty :)
 Thread.start {
   loop {
     begin
@@ -185,9 +186,7 @@ Thread.start {
       to_add.each do |link|
         begin
           puts "Adding #{link}"
-          data = open(link, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).read
-          data = Base64.encode64(data)
-          Trans::Api::Torrent.add_metainfo data, 'rss torrent', {paused: false}
+          $xmlrpc.call('load_start', link)
         rescue
         end
       end
@@ -196,7 +195,6 @@ Thread.start {
     sleep 60
   }
 }
-=end
 
 def addUserToDb email, name, level
   begin
