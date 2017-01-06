@@ -231,6 +231,7 @@ puts "Setting up Sinatra"
 def redirect_uri
   uri = URI.parse(request.url)
   uri.path = '/oauth2callback'
+  uri.port = envRequire('NGINX_PORT')
   uri.query = nil
   uri.to_s
 end
