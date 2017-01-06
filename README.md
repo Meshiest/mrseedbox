@@ -2,13 +2,13 @@
 
 ### 1.5(new) screenshots
 
-### 1.0(old) screenshots
-
 ![](http://i.imgur.com/WDeD1Is.png)
 ![](http://i.imgur.com/tMiGwxQ.png)
 ![](http://i.imgur.com/jmW8KzM.png)
 ![](http://i.imgur.com/uWYCPAm.png)
 ![](http://i.imgur.com/relNlJz.png)
+![](http://i.imgur.com/s9AOqUZ.png)
+![](http://i.imgur.com/bbXlsPd.png)
 
 ## Install process (Still wip, sorry!):
 
@@ -33,7 +33,7 @@
 * Generate a SSL Cert: `./setup`
 * `cp settings.json transmission/config/settings.json` (and make neccessary dirs)
 * The **first person to connect and auth will be the "owner"**
-* You will have to go through the emby setup too! (this means you might need to make accounts for your friends of share accounts)
+* You will have to go through the initial emby setup at `localhost:8096`!
 
 ### Commands (from shell):
 

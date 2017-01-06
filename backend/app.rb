@@ -363,19 +363,19 @@ class Server < Sinatra::Base
 
   # emby Reverse Proxy
 
-  get '/emby/*' do
+  get '/mb/*' do
     user_id = session[:user_id]
     if !hasPerm user_id, :READ_TORRENT
       status 404
       erb :oops
     else
       begin
-        path = "http://emby:8096/#{request.path[6..-1]}"
+        path = "http://emby:8096/#{request.path[4..-1]}"
         puts "PATH: #{path}"
         
         #build http party url
         mapped_headers = get_headers
-        mapped_headers['Host'] = 'emby:8096/emby'
+        mapped_headers['Host'] = 'emby:8096'
         mapped_headers['Accept-Encoding'] = 'identity'
         response = HTTParty.get(
           path,
@@ -387,7 +387,14 @@ class Server < Sinatra::Base
 
         puts response.headers.to_hash
         status response.code
-        headers["Content-Type"] = response.headers['content-type']
+        response.headers.each do |k, v|
+          puts "#{k}: #{v}"
+          headers[k] = v if v
+        end
+        #headers["Content-Type"] = response.headers['content-type']
+        #headers["X-Content-Type-Options"] = response.headers["X-Content-Type-Options"]
+        #headers["X-Frame-Options"] = response.headers["X-Frame-Options"]
+        #headers["X-Xss-Protection"] = response.headers["X-Xss-Protection"]
         response.body
       rescue StandardError => e
         puts e.message
@@ -408,14 +415,14 @@ class Server < Sinatra::Base
     end
   end
 
-  post '/emby/*' do
+  post '/mb/*' do
     user_id = session[:user_id]
     if !hasPerm user_id, :READ_TORRENT
       status 404
       erb :oops
     else
       begin
-        path = "http://emby:8096/#{request.path[6..-1]}"
+        path = "http://emby:8096/#{request.path[4..-1]}"
         mapped_headers = get_headers
         mapped_headers['Host'] = 'emby:8096'
         mapped_headers['Accept-Encoding'] = 'identity'
@@ -426,7 +433,10 @@ class Server < Sinatra::Base
           headers: mapped_headers
         )
         status response.code
-        headers["Content-Type"] = response.headers['content-type']
+        response.headers.each do |k, v|
+          headers[k] = v if v
+        end
+
         response.body
       rescue StandardError => e
         puts e.message
@@ -437,7 +447,6 @@ class Server < Sinatra::Base
         {
           error: e.message,
           headers: mapped_headers,
-          headers2: respose.headers.to_hash,
           body: request.body,
           params: params.select { |k,v|
             !['splat', 'captures'].include?(k)

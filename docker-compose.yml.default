@@ -8,6 +8,20 @@ db:
   expose:
     - "3306"
 
+emby:
+  image: dperson/emby
+  restart: always
+  volumes: 
+    - ./emby/config:/config
+    - ./rtorrent/downloads:/media/torrents
+  environment:
+    PGID: 1000 # get 'gid' from `id <yourusername>`
+    PUID: 1000 # get 'uid' from `id <yourusername>`
+  ports:
+    - "8096:8096"
+    - "7359:7359/udp"
+    - "1900:1900/udp"
+
 rtorrent:
   image: linuxserver/rutorrent
   restart: always
@@ -30,8 +44,19 @@ backend:
   volumes:
     - ./backend:/app
     - ./rtorrent/downloads:/downloads
-  ports:
-    - "443:443"
   links:
     - db:mysql
     - rtorrent:rtorrent
+    - emby:emby
+
+nginx:
+  image: nginx
+  volumes:
+   - ./nginx.conf:/etc/nginx/conf.d/default.conf
+   - ./backend/cert.crt:/etc/ssl/certs/cert.crt
+   - ./backend/key.pem:/etc/ssl/private/key.pem
+  ports:
+   - "443:443"
+  links:
+    - emby:emby
+    - backend:backend

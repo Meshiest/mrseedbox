@@ -69,35 +69,35 @@
     }).
     when('/home', {
       controller: 'HomeCtrl',
-      templateUrl: '/views/home.html'
+      templateUrl: 'views/home.html'
     }).
     when('/torrents', {
       controller: 'TorrentCtrl',
-      templateUrl: '/views/torrents.html'
+      templateUrl: 'views/torrents.html'
     }).
     when('/rutorrent', {
       controller: 'FrameCtrl',
-      templateUrl: '/views/rutorrent.html'
+      templateUrl: 'views/rutorrent.html'
     }).
     when('/emby', {
       controller: 'FrameCtrl',
-      templateUrl: '/views/emby.html'
+      templateUrl: 'views/emby.html'
     }).
     when('/subscriptions', {
       controller: 'SubscriptionCtrl',
-      templateUrl: '/views/subscriptions.html'
+      templateUrl: 'views/subscriptions.html'
     }).
     when('/users', {
       controller: 'UserCtrl',
-      templateUrl: '/views/users.html'
+      templateUrl: 'views/users.html'
     }).
     when('/feeds', {
       controller: 'FeedCtrl',
-      templateUrl: '/views/feeds.html'
+      templateUrl: 'views/feeds.html'
     }).
     when('/404', {
       controller: 'HomeCtrl',
-      templateUrl: '/views/notfound.html'
+      templateUrl: 'views/notfound.html'
     }).
     otherwise({
       redirectTo: '/404'
@@ -195,7 +195,7 @@
       var message = encodeURI($scope.message)
         .replace(/&/g, '%26')
         .replace(/;/g, '%3B');
-      $http({url:'/api/messages',method:'POST',params:{msg: message}}).
+      $http({url:'api/messages',method:'POST',params:{msg: message}}).
       success(function() {
         $scope.pending = false;
         $scope.message = '';
@@ -215,7 +215,7 @@
     var update = function () {
       $timeout.cancel(updateInterval);
 
-      $http.get('/api/messages').success(function(messages){
+      $http.get('api/messages').success(function(messages){
         messages = messages.reverse();
         for(var i in messages) {
           var msg = messages[i];
@@ -277,7 +277,7 @@
     var update = function () {
       $timeout.cancel(updateInterval);
 
-      $http.get('/api/torrents').success(function(torrents){
+      $http.get('api/torrents').success(function(torrents){
         var map = {};
         for(var i in $scope.torrents) {
           var torrent = $scope.torrents[i];
@@ -321,7 +321,7 @@
     update();
 
     $scope.startTorrent = function(torrent) {
-      $http({url: "/api/torrents/"+torrent.info_hash+"/start", method: "POST"}).success(function(){
+      $http({url: "api/torrents/"+torrent.info_hash+"/start", method: "POST"}).success(function(){
         $mdToast.show(
           $mdToast.simple()
             .textContent('Starting Torrent')
@@ -343,7 +343,7 @@
     };
     
     $scope.stopTorrent = function(torrent) {
-      $http({url: "/api/torrents/"+torrent.info_hash+"/stop", method: "POST"}).success(function(){
+      $http({url: "api/torrents/"+torrent.info_hash+"/stop", method: "POST"}).success(function(){
         $mdToast.show(
           $mdToast.simple()
             .textContent('Stopping Torrent')
@@ -374,7 +374,7 @@
         .ok('Yes')
         .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/torrents/"+torrent.info_hash+"/delete", method: "POST"}).success(function(){
+        $http({url: "api/torrents/"+torrent.info_hash+"/delete", method: "POST"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing Torrent')
@@ -429,7 +429,7 @@
         targetEvent: ev,
         clickOutsideToClose: true
       }).then(function(success) {
-        $http({url: "/api/torrents", method: "POST", params: success}).success(function(){
+        $http({url: "api/torrents", method: "POST", params: success}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Adding Torrent')
@@ -484,12 +484,6 @@
     };
   });
 
-  app.filter('round', function($filter) {
-    return function(num) {
-      return ~~(num*100)/100;
-    };
-  });
-
 
   app.controller('UserCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
 
@@ -500,7 +494,7 @@
     var update = function () {
       $timeout.cancel(updateInterval);
 
-      $http.get('/api/users').success(function(users){
+      $http.get('api/users').success(function(users){
         var map = {};
         for(var i in $scope.users) {
           var user = $scope.users[i];
@@ -570,7 +564,7 @@
         targetEvent: ev,
         clickOutsideToClose: true
       }).then(function(success) {
-        $http({url: "/api/users" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
+        $http({url: "api/users" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent((editing?"Editing":"Adding")+' User')
@@ -602,7 +596,7 @@
         .ok('Yes')
         .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/users/"+user.id, method: "DELETE"}).success(function(){
+        $http({url: "api/users/"+user.id, method: "DELETE"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing User')
@@ -637,7 +631,7 @@
     var update = function () {
       $timeout.cancel(updateInterval);
 
-      $http.get('/api/listeners').success(function(listeners){
+      $http.get('api/listeners').success(function(listeners){
         var listenerMap = {};
         for(var i in $scope.listeners) {
           var listener = $scope.listeners[i];
@@ -664,7 +658,7 @@
           }
         }
       }).success(function() {
-        $http.get('/api/user/listeners').success(function(user_listeners){
+        $http.get('api/user/listeners').success(function(user_listeners){
           $scope.user_listeners = user_listeners;
           var sub_map = {};
           for(var i in user_listeners) {
@@ -692,7 +686,7 @@
 
     $scope.updateSub = function(listener) {
       var time = listener.last_update > listener.sub.last_seen ? Math.floor(Date.now()/1000) : listener.last_update - 5;
-      $http({url: "/api/user/listeners/" + listener.id, method: "PUT", params: {time: time}}).success(function(){
+      $http({url: "api/user/listeners/" + listener.id, method: "PUT", params: {time: time}}).success(function(){
         $mdToast.show(
           $mdToast.simple()
             .textContent('Updated Subscription')
@@ -731,7 +725,7 @@
     var update = function () {
       $timeout.cancel(updateInterval);
 
-      $http.get('/api/feeds').success(function(feeds){
+      $http.get('api/feeds').success(function(feeds){
         var map = {};
         for(var i in $scope.feeds) {
           var feed = $scope.feeds[i];
@@ -759,7 +753,7 @@
           }
         }
         var listenerMap = {};
-        $http.get('/api/listeners').success(function(listeners){
+        $http.get('api/listeners').success(function(listeners){
           for(var i in $scope.listeners) {
             var listener = $scope.listeners[i];
             listener.delete_flag = true;
@@ -785,7 +779,7 @@
             }
           }
         }).success(function() {
-          $http.get('/api/user/listeners').success(function(user_listeners){
+          $http.get('api/user/listeners').success(function(user_listeners){
             $scope.user_listeners = user_listeners;
             var sub_map = {};
             for(var i in user_listeners) {
@@ -826,7 +820,7 @@
     });
 
     $scope.toggleListener = function(listener) {
-      $http({url: "/api/user/listeners"+(listener.sub ? "/" + listener.id : ""), method: (listener.sub ? "DELETE" : "POST"), params: {listener_id: listener.id}}).success(function(){
+      $http({url: "api/user/listeners"+(listener.sub ? "/" + listener.id : ""), method: (listener.sub ? "DELETE" : "POST"), params: {listener_id: listener.id}}).success(function(){
         $mdToast.show(
           $mdToast.simple()
             .textContent((listener.sub?"Removing":"Adding")+' Subscription')
@@ -874,7 +868,7 @@
         targetEvent: ev,
         clickOutsideToClose: true
       }).then(function(success) {
-        $http({url: "/api/feeds" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
+        $http({url: "api/feeds" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent((editing?"Editing":"Adding")+' Feed')
@@ -906,7 +900,7 @@
         .ok('Yes')
         .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/feeds/"+feed.id, method: "DELETE"}).success(function(){
+        $http({url: "api/feeds/"+feed.id, method: "DELETE"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing Feed')
@@ -955,7 +949,7 @@
         targetEvent: ev,
         clickOutsideToClose: true
       }).then(function(success) {
-        $http({url: "/api/listeners" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
+        $http({url: "api/listeners" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent((editing?"Editing":"Adding")+' Listener')
@@ -987,7 +981,7 @@
         .ok('Yes')
         .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/listeners/"+listener.id, method: "DELETE"}).success(function(){
+        $http({url: "api/listeners/"+listener.id, method: "DELETE"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing Listener')
