@@ -48,6 +48,12 @@ backend:
     - db:mysql
     - rtorrent:rtorrent
     - emby:emby
+    - redis:redis
+
+# how easy :)
+redis:
+  image: redis
+
 
 nginx:
   image: nginx
