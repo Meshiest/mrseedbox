@@ -57,6 +57,8 @@ nginx:
    - ./backend/key.pem:/etc/ssl/private/key.pem
   ports:
    - "443:443"
+  environment:
+    NGINX_PORT: 443
   links:
     - emby:emby
     - backend:backend
