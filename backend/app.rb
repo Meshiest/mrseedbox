@@ -315,6 +315,7 @@ class Server < Sinatra::Base
       rescue StandardError => e
         puts e.message
         puts e.backtrace
+        content_type :json
         status 500
         {
           error: e.message,
@@ -323,7 +324,7 @@ class Server < Sinatra::Base
           params: params.select { |k,v|
             !['splat', 'captures'].include?(k)
           },
-          path: request.path.gsub(/^\/rutorrent\//,'rtorrent/')
+          path: path
         }.to_json
       end
     end
@@ -345,6 +346,7 @@ class Server < Sinatra::Base
       rescue StandardError => e
         puts e.message
         puts e.backtrace
+        content_type :json
         status 500
         {
           error: e.message,
@@ -353,11 +355,99 @@ class Server < Sinatra::Base
           params: params.select { |k,v|
             !['splat', 'captures'].include?(k)
           },
-          path: request.path.gsub(/^\/rutorrent\//,'rtorrent/')
+          path: path
         }.to_json
       end
     end
   end
+
+  # emby Reverse Proxy
+
+  get '/emby/*' do
+    user_id = session[:user_id]
+    if !hasPerm user_id, :READ_TORRENT
+      status 404
+      erb :oops
+    else
+      begin
+        path = "http://emby:8096/#{request.path[6..-1]}"
+        puts "PATH: #{path}"
+        
+        #build http party url
+        mapped_headers = get_headers
+        mapped_headers['Host'] = 'emby:8096/emby'
+        mapped_headers['Accept-Encoding'] = 'identity'
+        response = HTTParty.get(
+          path,
+          query: params.select { |k,v|
+            !['splat', 'captures'].include?(k)
+          },
+          headers: mapped_headers
+        )
+
+        puts response.headers.to_hash
+        status response.code
+        headers["Content-Type"] = response.headers['content-type']
+        response.body
+      rescue StandardError => e
+        puts e.message
+        puts mapped_headers
+        puts e.backtrace
+        content_type :json
+        status 500
+        {
+          error: e.message,
+          headers: mapped_headers,
+          body: request.body.read,
+          params: params.select { |k,v|
+            !['splat', 'captures'].include?(k)
+          },
+          path: path
+        }.to_json
+      end
+    end
+  end
+
+  post '/emby/*' do
+    user_id = session[:user_id]
+    if !hasPerm user_id, :READ_TORRENT
+      status 404
+      erb :oops
+    else
+      begin
+        path = "http://emby:8096/#{request.path[6..-1]}"
+        mapped_headers = get_headers
+        mapped_headers['Host'] = 'emby:8096'
+        mapped_headers['Accept-Encoding'] = 'identity'
+
+        response = HTTParty.post(
+          path,
+          body: request.body.read.to_s,
+          headers: mapped_headers
+        )
+        status response.code
+        headers["Content-Type"] = response.headers['content-type']
+        response.body
+      rescue StandardError => e
+        puts e.message
+        puts mapped_headers
+        puts e.backtrace
+        status 500
+        content_type :json
+        {
+          error: e.message,
+          headers: mapped_headers,
+          headers2: respose.headers.to_hash,
+          body: request.body,
+          params: params.select { |k,v|
+            !['splat', 'captures'].include?(k)
+          },
+          path: path
+        }.to_json
+      end
+    end
+  end
+
   # Api Routes
 
   get '/api/messages' do

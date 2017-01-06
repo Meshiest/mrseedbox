@@ -76,8 +76,12 @@
       templateUrl: '/views/torrents.html'
     }).
     when('/rutorrent', {
-      controller: 'RutorrentCtrl',
+      controller: 'FrameCtrl',
       templateUrl: '/views/rutorrent.html'
+    }).
+    when('/emby', {
+      controller: 'FrameCtrl',
+      templateUrl: '/views/emby.html'
     }).
     when('/subscriptions', {
       controller: 'SubscriptionCtrl',
@@ -146,6 +150,11 @@
       icon: 'library_books',
       path: '/rutorrent',
       perm: PERMISSIONS.EDIT_TORRENT,
+    }, {
+      title: 'Emby',
+      icon: 'video_library',
+      path: '/emby',
+      perm: PERMISSIONS.READ_TORRENT,
     }, {
       title: 'Feeds',
       icon: 'rss_feed',
@@ -1019,7 +1028,7 @@
     };
   });
 
-  app.controller('RutorrentCtrl', function($scope) {
+  app.controller('FrameCtrl', function($scope) {
   });
 
 

@@ -1,5 +1,9 @@
 ## Mr Seedbox
 
+### 1.5(new) screenshots
+
+### 1.0(old) screenshots
+
 ![](http://i.imgur.com/WDeD1Is.png)
 ![](http://i.imgur.com/tMiGwxQ.png)
 ![](http://i.imgur.com/jmW8KzM.png)
@@ -28,6 +32,8 @@
 * Edit your docker-compose.yml and common.env files (put google api client and secret in)
 * Generate a SSL Cert: `./setup`
 * `cp settings.json transmission/config/settings.json` (and make neccessary dirs)
+* The **first person to connect and auth will be the "owner"**
+* You will have to go through the emby setup too! (this means you might need to make accounts for your friends of share accounts)
 
 ### Commands (from shell):
 
@@ -50,9 +56,5 @@
 
 ### Updating the Backend (this is all in the `backend` directory)
 1. Make your changes
-2. Triple check that Gemfile has all the gems
-3. `bundle install` (maybe remove `Gemfile.lock` if something broke)
-  * you might need to do this: `sudo apt-get install libmysqlclient-dev`
-  * you also might need a good old `bundle update` if you get "Your bundle is locked to [gemname]..."
-4. `docker build .`
-5. `./start` from the parent directory and `docker logs -f mrseedbox_backend_1` and check if there were any problems starting the container
+2. `docker build .`
+3. `./start` from the parent directory and `docker logs -f mrseedbox_backend_1` and check if there were any problems starting the container
