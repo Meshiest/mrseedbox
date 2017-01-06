@@ -1,5 +1,5 @@
 <md-dialog aria-label="Add Listener"  ng-cloak>
-  <form name='listenerForm'>
+  <form name="listenerForm">
     <md-toolbar>
       <div class="md-toolbar-tools">
         <h2>{{locals.editing ? 'Edit' : 'Add'}} A Listener</h2>
@@ -11,27 +11,27 @@
     </md-toolbar>
     <md-dialog-content>
       <div class="md-dialog-content">
-        <md-input-container class='md-block'>
+        <md-input-container class="md-block">
           <label>Name</label>
-          <input required type='text' name='name' ng-model="locals.payload.name" ng-pattern='/^[a-z0-9_-]{0,48}$/i' />
-          <div ng-messages='listenerForm.name.$error'>
-            <div ng-message='required'>Enter a Name</div>
-            <div ng-message='pattern'>Invalid Name (a-zA-Z0-9_-)</div>
+          <input required type="text" name="name" ng-model="locals.payload.name" ng-pattern="/^[a-z0-9_-]{0,48}$/i" />
+          <div ng-messages="listenerForm.name.$error">
+            <div ng-message="required">Enter a Name</div>
+            <div ng-message="pattern">Invalid Name (a-zA-Z0-9_-)</div>
           </div>
         </md-input-container>
-        <md-input-container class='md-block'>
+        <md-input-container class="md-block">
           <label>Pattern</label>
-          <input required type='pattern' name='pattern' ng-model="locals.payload.pattern" ng-pattern='/^[a-z0-9().*+?|\[\]-]{1,48}$/i' />
-          <div ng-messages='listenerForm.pattern.$error'>
-            <div ng-message='required'>Enter a Pattern</div>
-            <div ng-message='pattern'>Invalid Pattern</div>
+          <input required type="pattern" name="pattern" ng-model="locals.payload.pattern" ng-pattern="/^[a-z0-9().*+?|\[\]-]{1,48}$/i" />
+          <div ng-messages="listenerForm.pattern.$error">
+            <div ng-message="required">Enter a Pattern</div>
+            <div ng-message="pattern">Invalid Pattern</div>
           </div>
         </md-input-container>
       </div>
     </md-dialog-content>
     <md-dialog-actions layout="row">
       <span flex></span>
-      <md-button ng-click="answer(locals.payload)" ng-disabled='listenerForm.$invalid ' class='md-primary md-raised'>
+      <md-button ng-click="answer(locals.payload)" ng-disabled="listenerForm.$invalid " class="md-primary md-raised">
         {{locals.editing ? 'Update' : 'Add'}}
       </md-button>
     </md-dialog-actions>

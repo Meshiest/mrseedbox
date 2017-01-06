@@ -1,12 +1,16 @@
 ## Mr Seedbox
 
+### 1.5(new) screenshots
+
 ![](http://i.imgur.com/WDeD1Is.png)
 ![](http://i.imgur.com/tMiGwxQ.png)
 ![](http://i.imgur.com/jmW8KzM.png)
 ![](http://i.imgur.com/uWYCPAm.png)
 ![](http://i.imgur.com/relNlJz.png)
+![](http://i.imgur.com/s9AOqUZ.png)
+![](http://i.imgur.com/bbXlsPd.png)
 
-##Install process (Still wip, sorry!):
+## Install process (Still wip, sorry!):
 
 1. Be running Linux
 * Install Git
@@ -28,8 +32,10 @@
 * Edit your docker-compose.yml and common.env files (put google api client and secret in)
 * Generate a SSL Cert: `./setup`
 * `cp settings.json transmission/config/settings.json` (and make neccessary dirs)
+* The **first person to connect and auth will be the "owner"**
+* You will have to go through the initial emby setup at `localhost:8096`!
 
-###Commands:
+### Commands (from shell):
 
 * `./start` - should start and build containers
 * `docker-compose up -d` - same as above
@@ -42,3 +48,13 @@
 * `docker ps` - list containers
 * `docker exec -it mrseedbox_backend_1 bash` - get a shell in the backend container
 * You should know that creating a `debug` file in the backend folder will prevent authentication
+
+## Contributing
+
+### Things You Need
+* You need docker
+
+### Updating the Backend (this is all in the `backend` directory)
+1. Make your changes
+2. `docker build .`
+3. `./start` from the parent directory and `docker logs -f mrseedbox_backend_1` and check if there were any problems starting the container

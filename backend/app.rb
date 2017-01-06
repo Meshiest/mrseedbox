@@ -1,24 +1,35 @@
 require 'rubygems'
 
-require 'trans-api'
-require 'oauth2'
+require 'base64'
+require 'httparty'
+require 'json'
 require 'mysql2'
+require 'oauth2'
 require 'open-uri'
 require 'open_uri_redirections'
+require 'openssl'
+require 'retort'
 require 'rss'
-require 'json'
 require 'sinatra/base'
 require 'webrick'
 require 'webrick/https'
-require 'openssl'
-require 'base64'
-
 
 def envRequire name
   unless ENV[name]
     raise "You must specify the #{name} env variable"
   end
   ENV[name]
+end
+
+# For reverse proxy
+def get_headers
+  Hash[*env.select {|k,v| k.start_with?('HTTP_') || (k == 'CONTENT_TYPE') }
+  .collect {|k,v| [k.sub(/^HTTP_/, ''), v]}
+  .collect {|k,v| [k.split('_').collect(&:capitalize).join('-'), v]}
+  .sort
+  .flatten].select { |k,v|
+    !['Host', 'Connection', 'Version', 'X-Forwarded-For', 'X-Forwarded-Port', 'X-Forwarded-Proto'].include?(k)
+  }
 end
 
 OWNER_LEVEL = 3
@@ -38,19 +49,11 @@ PERMISSIONS = {
   READ_SUBSCRIPTION: 0,
 }
 
-# transmission client
+# rtorrent client
 
-TRANSMISSION_CONFIG = {
-  host: 'transmission',
-  path: '/transmission/rpc',
-  port: 9091,
-  user: envRequire('TRANSMISSION_USER'),
-  pass: envRequire('TRANSMISSION_PASS'),
-}
-
-puts "Setting up Transmission"
-Trans::Api::Client.config = TRANSMISSION_CONFIG
-Trans::Api::Torrent.default_fields = [ :id, :status, :name, :files ]
+$xmlrpc = Retort::Service.configure do |config| 
+  config.url = 'http://rtorrent:80'
+end
 
 # oauth2 client w/ google
 
@@ -145,6 +148,7 @@ if $firstUser
 end
 
 # feed loop
+# might as well keep the existing rss feeds because they are pretty nifty :)
 Thread.start {
   loop {
     begin
@@ -182,9 +186,7 @@ Thread.start {
       to_add.each do |link|
         begin
           puts "Adding #{link}"
-          data = open(link, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).read
-          data = Base64.encode64(data)
-          Trans::Api::Torrent.add_metainfo data, 'rss torrent', {paused: false}
+          $xmlrpc.call('load_start', link)
         rescue
         end
       end
@@ -286,6 +288,175 @@ class Server < Sinatra::Base
     erb :oops
   end
 
+  # ruTorrent Reverse Proxy
+
+  get '/rutorrent/*' do
+    user_id = session[:user_id]
+    if !hasPerm user_id, :EDIT_TORRENT
+      status 404
+      erb :oops
+    else
+      begin
+        path = "http://#{request.path.gsub(/^\/rutorrent\//,'rtorrent/')}"
+        #build http party url
+        mapped_headers = get_headers
+
+        response = HTTParty.get(
+          path,
+          query: params.select { |k,v|
+            !['splat', 'captures'].include?(k)
+          },
+          headers: mapped_headers
+        )
+
+        status response.code
+        headers["Content-Type"] = response.headers['content-type']
+        response.body
+      rescue StandardError => e
+        puts e.message
+        puts e.backtrace
+        content_type :json
+        status 500
+        {
+          error: e.message,
+          headers: mapped_headers,
+          body: request.body,
+          params: params.select { |k,v|
+            !['splat', 'captures'].include?(k)
+          },
+          path: path
+        }.to_json
+      end
+    end
+  end
+
+  post '/rutorrent/*' do
+    user_id = session[:user_id]
+    if !hasPerm user_id, :EDIT_TORRENT
+      status 404
+      erb :oops
+    else
+      begin
+        path = "http://#{request.path.gsub(/^\/rutorrent\//,'rtorrent/')}"
+        mapped_headers = get_headers
+        response = HTTParty.post(path, body: request.body.read.to_s, headers: mapped_headers)
+        status response.code
+        headers["Content-Type"] = response.headers['content-type']
+        response.body
+      rescue StandardError => e
+        puts e.message
+        puts e.backtrace
+        content_type :json
+        status 500
+        {
+          error: e.message,
+          headers: mapped_headers,
+          body: request.body,
+          params: params.select { |k,v|
+            !['splat', 'captures'].include?(k)
+          },
+          path: path
+        }.to_json
+      end
+    end
+  end
+
+  # emby Reverse Proxy
+
+  get '/mb/*' do
+    user_id = session[:user_id]
+    if !hasPerm user_id, :READ_TORRENT
+      status 404
+      erb :oops
+    else
+      begin
+        path = "http://emby:8096/#{request.path[4..-1]}"
+        puts "PATH: #{path}"
+        
+        #build http party url
+        mapped_headers = get_headers
+        mapped_headers['Host'] = 'emby:8096'
+        mapped_headers['Accept-Encoding'] = 'identity'
+        response = HTTParty.get(
+          path,
+          query: params.select { |k,v|
+            !['splat', 'captures'].include?(k)
+          },
+          headers: mapped_headers
+        )
+
+        puts response.headers.to_hash
+        status response.code
+        response.headers.each do |k, v|
+          puts "#{k}: #{v}"
+          headers[k] = v if v
+        end
+        #headers["Content-Type"] = response.headers['content-type']
+        #headers["X-Content-Type-Options"] = response.headers["X-Content-Type-Options"]
+        #headers["X-Frame-Options"] = response.headers["X-Frame-Options"]
+        #headers["X-Xss-Protection"] = response.headers["X-Xss-Protection"]
+        response.body
+      rescue StandardError => e
+        puts e.message
+        puts mapped_headers
+        puts e.backtrace
+        content_type :json
+        status 500
+        {
+          error: e.message,
+          headers: mapped_headers,
+          body: request.body.read,
+          params: params.select { |k,v|
+            !['splat', 'captures'].include?(k)
+          },
+          path: path
+        }.to_json
+      end
+    end
+  end
+
+  post '/mb/*' do
+    user_id = session[:user_id]
+    if !hasPerm user_id, :READ_TORRENT
+      status 404
+      erb :oops
+    else
+      begin
+        path = "http://emby:8096/#{request.path[4..-1]}"
+        mapped_headers = get_headers
+        mapped_headers['Host'] = 'emby:8096'
+        mapped_headers['Accept-Encoding'] = 'identity'
+
+        response = HTTParty.post(
+          path,
+          body: request.body.read.to_s,
+          headers: mapped_headers
+        )
+        status response.code
+        response.headers.each do |k, v|
+          headers[k] = v if v
+        end
+
+        response.body
+      rescue StandardError => e
+        puts e.message
+        puts mapped_headers
+        puts e.backtrace
+        status 500
+        content_type :json
+        {
+          error: e.message,
+          headers: mapped_headers,
+          body: request.body,
+          params: params.select { |k,v|
+            !['splat', 'captures'].include?(k)
+          },
+          path: path
+        }.to_json
+      end
+    end
+  end
+
   # Api Routes
 
   get '/api/messages' do
@@ -342,6 +513,7 @@ class Server < Sinatra::Base
   get '/api/files' do
     user_id = session[:user_id]
     content_type :json
+
     if !hasPerm user_id, :READ_TORRENT
       status 401
       {
@@ -350,7 +522,7 @@ class Server < Sinatra::Base
       }.to_json
     else 
       status 200
-      Dir["/transmission/downloads/**/*"].map{|i|i[('/transmission/downloads/'.length)..-1]}.to_json
+      Dir["/downloads/**/*"].map{|i|i[('/downloads/'.length)..-1]}.to_json
     end
   end
 
@@ -365,9 +537,9 @@ class Server < Sinatra::Base
       }.to_json
     end
     file = URI.decode(params[:file])
-    files = Dir["/transmission/downloads/**/*"].map{|i|i[('/transmission/downloads/'.length)..-1]}
+    files = Dir["/downloads/**/*"].map{|i|i[('/downloads/'.length)..-1]}
     if files.include?(file)
-      send_file '/transmission/downloads/'+file, {:filename => "#{file}", :stream => true}
+      send_file '/downloads/'+file, {:filename => "#{file}", :stream => true}
     else
       status 404
       content_type :json
@@ -396,19 +568,23 @@ class Server < Sinatra::Base
       if !@lastTorrentTime || @lastTorrentTime && @lastTorrentTime + 1.5 < now
         torrents = []
         @lastTorrentTime = now
-        torrentList = []
         begin
-          Trans::Api::Torrent.all.each do |torrent|
-            fields =  torrent.fields
+          Retort::Torrent.all.each do |torrent|
             torrents << {
-              id: fields[:id],
-              name: fields[:name],
-              state: fields[:status],
-              status: Trans::Api::Torrent::STATUS[fields[:status]],
-              files: fields[:files].map{|f|{
-                  name: f[:name],
-                  downloaded: f[:bytesCompleted],
-                  total: f[:length],
+              info_hash: torrent.info_hash,
+              creationDate: torrent.creation_date,
+              size: torrent.size,
+              ratio: torrent.completed_ratio,
+              name: torrent.torrent_name,
+              state: torrent.status,
+              completed: torrent.completed,
+              status: (!torrent.is_active ? 'stopped' : (torrent.complete == 1 ? 'seeding' : 'downloading')),
+              files: torrent.files.map{|f|{
+                  name: f[:path],
+                  path: f[:frozen_path].gsub(/^\/downloads\//,''),
+                  size: f[:size_bytes],
+                  completedChunks: f[:completed_chunks],
+                  totalChunks: f[:size_chunks],
                 }
               },
             }
@@ -435,60 +611,33 @@ class Server < Sinatra::Base
       }.to_json
     else
       updateUserStatus user_id
-      case params[:action]
-      when "magnet"
-        begin
-          Trans::Api::Torrent.add_magnet URI.decode(params[:url]), {paused: false}
-          status 200,
-          {
-            status: 200,
-            message: "OK",
-          }.to_json
-        rescue
-          status 500,
-          {
-            status: 500,
-            message: "Error",
-            backtrace: $!.backtrace
-          }.to_json
-        end
-      when "url"
-        begin
-          data = open(URI.decode(params[:url]), {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE}).read
-          data = Base64.encode64(data)
-          Trans::Api::Torrent.add_metainfo data, "api torrent by #{user_id}", {paused: false}
-          status 200
-          {
-            status: 200,
-            message: "OK",
-          }.to_json
-        rescue
-          status 500
-          {
-            status: 500,
-            message: "Error",
-            backtrace: $!.backtrace
-          }.to_json
-        end
-      else
-        status 404
+      begin
+
+        $xmlrpc.call('load_start', URI.decode(params[:url]))
+        status 200
         {
-          status: 404,
-          message: "Operation '#{params[:action]}' Not Found",
+          status: 200,
+          message: "OK",
+        }.to_json
+      rescue
+        puts $!.backtrace
+        status 500,
+        {
+          status: 500,
+          message: "Error",
+          backtrace: $!.backtrace
         }.to_json
       end
     end
   end
 
-  post '/api/torrents/:id/:action' do
+  post '/api/torrents/:info_hash/:action' do
     user_id = session[:user_id]
-    id = params[:id]
-    if id
-      id = id.to_i rescue nil
-    end
+    info_hash = params[:info_hash]
     torrent = nil
     begin
-      torrent = Trans::Api::Torrent.find(id)
+      # Select the torrent from our list of torrents
+      torrent = Retort::Torrent.all.select{|t| t.info_hash == info_hash}[0]
     rescue
     end
     content_type :json
@@ -509,7 +658,7 @@ class Server < Sinatra::Base
       case params[:action]
       when "start"
         begin
-          torrent.start!
+          Retort::Torrent.action(:start, info_hash)
           status 200
           {
             status: 200,
@@ -525,7 +674,7 @@ class Server < Sinatra::Base
         end
       when "stop"
         begin
-          torrent.stop!
+          Retort::Torrent.action(:start, info_hash)
           status 200
           {
             status: 200,
@@ -541,7 +690,7 @@ class Server < Sinatra::Base
         end
       when "delete"
         begin
-          torrent.delete!({delete_local_data: true})
+          Retort::Torrent.action(:erase, info_hash)
           status 200
           {
             status: 200,
@@ -1214,7 +1363,6 @@ class Server < Sinatra::Base
     begin
       access_token = $oauth2Client.auth_code.get_token(params[:code], :redirect_uri => redirect_uri)
       data = access_token.get('https://www.googleapis.com/userinfo/email?alt=json').parsed
-      isVerified = data['data']['isVerified']
       email = data['data']['email']
 
       if $firstUser

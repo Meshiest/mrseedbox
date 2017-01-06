@@ -8,23 +8,32 @@ db:
   expose:
     - "3306"
 
-transmission:
-  image: linuxserver/transmission
+emby:
+  image: dperson/emby
   restart: always
-  volumes:
-    - ./transmission/config:/config
-    - ./transmission/watch:/watch
-    - ./transmission/incomplete:/incomplete
-    - ./transmission/downloads:/downloads
-  expose:
-    - "9091"
+  volumes: 
+    - ./emby/config:/config
+    - ./rtorrent/downloads:/media/torrents
   environment:
     PGID: 1000 # get 'gid' from `id <yourusername>`
     PUID: 1000 # get 'uid' from `id <yourusername>`
   ports:
-    - "9091:9091"
-    - "51413:51413"
-    - "51413:51413/udp"
+    - "8096:8096"
+    - "7359:7359/udp"
+    - "1900:1900/udp"
+
+rtorrent:
+  image: linuxserver/rutorrent
+  restart: always
+  volumes:
+    - ./rtorrent/config:/config
+    - ./rtorrent/downloads:/downloads
+  environment:
+    PGID: 1000 # get 'gid' from `id <yourusername>`
+    PUID: 1000 # get 'uid' from `id <yourusername>`
+  ports:
+    - "51413:51413" # Incoming Connections
+    - "6881:6881/udp" # Distributed Hash Table
 
 backend:
   build: "./backend"
@@ -34,9 +43,20 @@ backend:
     - ./common.env
   volumes:
     - ./backend:/app
-    - /transmission:/transmission
-  ports:
-    - "443:443"
+    - ./rtorrent/downloads:/downloads
   links:
     - db:mysql
-    - transmission:transmission
+    - rtorrent:rtorrent
+    - emby:emby
+
+nginx:
+  image: nginx
+  volumes:
+   - ./nginx.conf:/etc/nginx/conf.d/default.conf
+   - ./backend/cert.crt:/etc/ssl/certs/cert.crt
+   - ./backend/key.pem:/etc/ssl/private/key.pem
+  ports:
+   - "443:443"
+  links:
+    - emby:emby
+    - backend:backend

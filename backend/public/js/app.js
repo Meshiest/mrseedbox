@@ -1,6 +1,6 @@
 (function(){
   
-  var app = angular.module('SeedboxApp', ['ngMaterial','ngRoute','ngMessages'])
+  var app = angular.module('SeedboxApp', ['ngMaterial','ngRoute','ngMessages']);
 
   app.config(function ($routeProvider, $mdThemingProvider) {
     $mdThemingProvider.theme('default')
@@ -8,104 +8,112 @@
         default: '500',
         "hue-1": '50'
       })
-      .accentPalette('red')
+      .accentPalette('red');
 
 
     $mdThemingProvider.theme('input', 'default')
-      .primaryPalette('grey')
+      .primaryPalette('grey');
 
-    $mdThemingProvider.alwaysWatchTheme(true)
+    $mdThemingProvider.alwaysWatchTheme(true);
 
     $mdThemingProvider.theme('status_').
     primaryPalette('red', {
       'default': '500'
-    }).accentPalette('grey', { 'default': '900' })
+    }).accentPalette('grey', { 'default': '900' });
 
     $mdThemingProvider.theme('status_stopped').
     primaryPalette('grey', {
       'default': '600'
-    }).accentPalette('grey', { 'default': '900' })
+    }).accentPalette('grey', { 'default': '900' });
 
     $mdThemingProvider.theme('status_checkQueue').
     primaryPalette('purple', {
       'default': '500'
-    }).accentPalette('grey', { 'default': '900' })
+    }).accentPalette('grey', { 'default': '900' });
 
     $mdThemingProvider.theme('status_checkFiles').
     primaryPalette('yellow', {
       'default': '500'
-    }).accentPalette('grey', { 'default': '900' })
+    }).accentPalette('grey', { 'default': '900' });
 
     $mdThemingProvider.theme('status_downloadQueue').
     primaryPalette('blue', {
       'default': '500'
-    }).accentPalette('grey', { 'default': '900' })
+    }).accentPalette('grey', { 'default': '900' });
 
     $mdThemingProvider.theme('status_downloading').
     primaryPalette('blue', {
       'default': '900'
-    }).accentPalette('grey', { 'default': '900' })
+    }).accentPalette('grey', { 'default': '900' });
 
     $mdThemingProvider.theme('status_seedQueue').
     primaryPalette('green', {
       'default': '600'
-    }).accentPalette('grey', { 'default': '900' })
+    }).accentPalette('grey', { 'default': '900' });
 
     $mdThemingProvider.theme('status_seeding').
     primaryPalette('green', {
       'default': '900'
-    }).accentPalette('grey', { 'default': '900' })
+    }).accentPalette('grey', { 'default': '900' });
 
     $mdThemingProvider.theme('status_islated').
     primaryPalette('red', {
       'default': '500'
-    }).accentPalette('grey', { 'default': '900' })
+    }).accentPalette('grey', { 'default': '900' });
 
 
 
     $routeProvider.
     when('/', {
-      redirectTo: '/home'
+      redirectTo: '/torrents'
     }).
     when('/home', {
       controller: 'HomeCtrl',
-      templateUrl: '/views/home.html'
+      templateUrl: 'views/home.html'
     }).
     when('/torrents', {
       controller: 'TorrentCtrl',
-      templateUrl: '/views/torrents.html'
+      templateUrl: 'views/torrents.html'
+    }).
+    when('/rutorrent', {
+      controller: 'FrameCtrl',
+      templateUrl: 'views/rutorrent.html'
+    }).
+    when('/emby', {
+      controller: 'FrameCtrl',
+      templateUrl: 'views/emby.html'
     }).
     when('/subscriptions', {
       controller: 'SubscriptionCtrl',
-      templateUrl: '/views/subscriptions.html'
+      templateUrl: 'views/subscriptions.html'
     }).
     when('/users', {
       controller: 'UserCtrl',
-      templateUrl: '/views/users.html'
+      templateUrl: 'views/users.html'
     }).
     when('/feeds', {
       controller: 'FeedCtrl',
-      templateUrl: '/views/feeds.html'
+      templateUrl: 'views/feeds.html'
     }).
     when('/404', {
       controller: 'HomeCtrl',
-      templateUrl: '/views/notfound.html'
+      templateUrl: 'views/notfound.html'
     }).
     otherwise({
       redirectTo: '/404'
-    })
-  })
+    });
+  });
 
   app.controller('AppCtrl', function($scope, $mdMedia, $location, $mdSidenav, $http) {
-    $scope.http = $http
+    $scope.http = $http;
     
     $scope.setPath = function (path) {
-      $location.path(path)
-    }
+      $location.path(path);
+    };
 
     $scope.toggleSideNav = function (menuId) {
-      $mdSidenav(menuId).toggle()
-    }
+      $mdSidenav(menuId).toggle();
+    };
 
     var PERMISSIONS = $scope.PERMISSIONS = {
       EDIT_USER:         3,
@@ -118,14 +126,14 @@
       READ_TORRENT:      0,
       EDIT_SUBSCRIPTION: 0,
       READ_SUBSCRIPTION: 0,
-    }
+    };
 
     $scope.levels = {
       3: "Owner",
       2: "Editor",
       1: "Member",
       0: "Visitor",
-    }
+    };
 
     $scope.menu = [{
       title: 'Chat',
@@ -136,6 +144,16 @@
       title: 'Torrents',
       icon: 'file_download',
       path: '/torrents',
+      perm: PERMISSIONS.READ_TORRENT,
+    }, {
+      title: 'RuTorrent',
+      icon: 'library_books',
+      path: '/rutorrent',
+      perm: PERMISSIONS.EDIT_TORRENT,
+    }, {
+      title: 'Emby',
+      icon: 'video_library',
+      path: '/emby',
       perm: PERMISSIONS.READ_TORRENT,
     }, {
       title: 'Feeds',
@@ -152,204 +170,199 @@
       icon: 'person',
       path: '/users',
       perm: PERMISSIONS.READ_USER,
-    }]
+    }];
 
-    $scope.title = 'Mr. Seedbox'
+    $scope.title = 'Mr. Seedbox';
 
-    $scope.level = window.user_level
-    $scope.id = window.user_id
+    $scope.level = window.user_level;
+    $scope.id = window.user_id;
 
-    $scope.messages = []
-  })
+    $scope.messages = [];
+  });
 
   app.controller('HomeCtrl', function($scope, $timeout, $http) {
-    $scope.messages = []
-    $scope.lastUpdate = 0
+    $scope.messages = [];
+    $scope.lastUpdate = 0;
 
-    var updateInterval
+    var updateInterval;
 
-    $scope.message = ''
-    $scope.pending = false
+    $scope.message = '';
+    $scope.pending = false;
     $scope.sendMessage = function() {
       if($scope.message.length < 1 || $scope.message.length > 256)
-        return 
-      $scope.pending = true
+        return ;
+      $scope.pending = true;
       var message = encodeURI($scope.message)
         .replace(/&/g, '%26')
         .replace(/;/g, '%3B');
-      $http({url:'/api/messages',method:'POST',params:{msg: message}}).
+      $http({url:'api/messages',method:'POST',params:{msg: message}}).
       success(function() {
-        $scope.pending = false
-        $scope.message = ''
-        update()
+        $scope.pending = false;
+        $scope.message = '';
+        update();
       }).error(function(err) {
-        $scope.pending = false
+        $scope.pending = false;
 
         $mdToast.show(
           $mdToast.simple()
             .textContent('Error Sending Message: ',err.message)
             .position('bottom left')
             .hideDelay(3000)
-        )
-      })
-    }
+        );
+      });
+    };
 
     var update = function () {
-      $timeout.cancel(updateInterval)
+      $timeout.cancel(updateInterval);
 
-      $http.get('/api/messages').success(function(messages){
-        messages = messages.reverse()
-        for(i in messages) {
-          var msg = messages[i]
-          msg.message = decodeURIComponent(msg.message)
+      $http.get('api/messages').success(function(messages){
+        messages = messages.reverse();
+        for(var i in messages) {
+          var msg = messages[i];
+          msg.message = decodeURIComponent(msg.message);
           if(msg.time > $scope.lastUpdate) {
-            $scope.lastUpdate = msg.time
-            $scope.messages.push(msg)
+            $scope.lastUpdate = msg.time;
+            $scope.messages.push(msg);
           }
         }
 
-        updateInterval = $timeout(update, 2000)
+        updateInterval = $timeout(update, 2000);
       }).error(function(err){
         if(err.status == 401)
-          location.href='/logout'
-        updateInterval = $timeout(update, 5000)
-      })
+          location.href='/logout';
+        updateInterval = $timeout(update, 5000);
+      });
 
-    }
+    };
 
-    update()
+    update();
 
     $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval)
-    })
-  })
+      $timeout.cancel(updateInterval);
+    });
+  });
 
   app.controller('TorrentCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
 
-    $scope.torrents = []
-    $scope.search = ''
+    $scope.torrents = [];
+    $scope.search = '';
     $scope.extendLimit = 0;
 
     $scope.getOrder = function () {
-      return $scope.search.length ? "name" : "id"
-    }
+      return $scope.search.length ? "name" : "id";
+    };
 
     $scope.increaseLimit = function() {
       $scope.extendLimit += 10;
-    }
+    };
 
     $scope.getLimit = function() {
       return ($scope.search.length ? 30 : 10) + $scope.extendLimit;
-    }
+    };
 
     $scope.toggleTorrent = function(torrent) {
-      torrent.toggle = !torrent.toggle
-    }
-
-    var updateInterval
+      torrent.toggle = !torrent.toggle;
+    };
+    var updateInterval;
 
     function sanitizeNames(files) {
       for(var i = 0; i < files.length; i++) {
-        var name = files[i].name;
-        name = encodeURI(name)
+        files[i].link = encodeURI(files[i].path)
           .replace(/&/g, '%26')
           .replace(/;/g, '%3B');
-        files[i].link = name;
       }
       return files;
     }
 
     var update = function () {
-      $timeout.cancel(updateInterval)
+      $timeout.cancel(updateInterval);
 
-      $http.get('/api/torrents').success(function(torrents){
-        var map = {}
+      $http.get('api/torrents').success(function(torrents){
+        var map = {};
         for(var i in $scope.torrents) {
-          var torrent = $scope.torrents[i]
-          torrent.delete_flag = true
-          map[torrent.id] = torrent
+          var torrent = $scope.torrents[i];
+          torrent.delete_flag = true;
+          map[torrent.info_hash] = torrent;
         }
         for(var i in torrents) {
-          var torrent = torrents[i]
-          var exist = map[torrent.id]
+          var torrent = torrents[i];
+          torrent.progress = $scope.getProgress(torrent);
+          var exist = map[torrent.info_hash];
           if(exist) {
-            exist.name = torrent.name
-            exist.state = torrent.state
-            exist.status = torrent.status
-            exist.files = sanitizeNames(torrent.files)
-            delete exist.delete_flag
+            exist.name = torrent.name;
+            exist.size = torrent.size;
+            exist.ratio = torrent.ratio;
+            exist.state = torrent.state;
+            exist.status = torrent.status;
+            exist.progress = torrent.progress;
+            exist.completed = torrent.completed;
+            exist.creationDate = torrent.creationDate;
+            exist.files = sanitizeNames(torrent.files);
+            delete exist.delete_flag;
           } else {
-            $scope.torrents.push(torrent)
+            $scope.torrents.push(torrent);
           }
         }
         for(var i = 0; i < $scope.torrents.length; i++) {
-          var torrent = $scope.torrents[i]
+          var torrent = $scope.torrents[i];
           if(torrent.delete_flag) {
-            $scope.torrents.splice(i--, 1)
+            $scope.torrents.splice(i--, 1);
           }
         }
-        updateInterval = $timeout(update, 5000)
+        updateInterval = $timeout(update, 5000);
       }).error(function(err){
         if(err.status == 401)
-          location.href='/logout'
-        updateInterval = $timeout(update, 10000)
-      })
+          location.href='/logout';
+        updateInterval = $timeout(update, 10000);
+      });
 
-    }
+    };
 
-    update()
-
-    $scope.handleTorrent = function(torrent) {
-      if (torrent.status == "seeding" || torrent.status == "downloading" || torrent.status != "stopped") {
-        $scope.stopTorrent(torrent)
-      } else {
-        $scope.startTorrent(torrent)
-      }
-    }
+    update();
 
     $scope.startTorrent = function(torrent) {
-      $http({url: "/api/torrents/"+torrent.id+"/start", method: "POST"}).success(function(){
+      $http({url: "api/torrents/"+torrent.info_hash+"/start", method: "POST"}).success(function(){
         $mdToast.show(
           $mdToast.simple()
             .textContent('Starting Torrent')
             .position('bottom left')
             .hideDelay(3000)
-        )
-        update()
+        );
+        update();
       }).error(function(err) {
         if(err.status == 401)
-          location.href='/logout'
+          location.href='/logout';
 
         $mdToast.show(
           $mdToast.simple()
             .textContent('Error Starting Torrent: ',err.message)
             .position('bottom left')
             .hideDelay(3000)
-        )
-      })
-    }
+        );
+      });
+    };
     
     $scope.stopTorrent = function(torrent) {
-      $http({url: "/api/torrents/"+torrent.id+"/stop", method: "POST"}).success(function(){
+      $http({url: "api/torrents/"+torrent.info_hash+"/stop", method: "POST"}).success(function(){
         $mdToast.show(
           $mdToast.simple()
             .textContent('Stopping Torrent')
             .position('bottom left')
             .hideDelay(3000)
-        )
-        update()
+        );
+        update();
       }).error(function(err) {
         if(err.status == 401)
-          location.href='/logout'
+          location.href='/logout';
 
         $mdToast.show(
           $mdToast.simple()
             .textContent('Error Stopping Torrent: ',err.message)
             .position('bottom left')
             .hideDelay(3000)
-        )
-      })
-    }
+        );
+      });
+    };
 
     $scope.removeTorrent = function(ev, torrent) {
 
@@ -359,179 +372,184 @@
         .ariaLabel('Confirm')
         .targetEvent(ev)
         .ok('Yes')
-        .cancel('No')
+        .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/torrents/"+torrent.id+"/delete", method: "POST"}).success(function(){
+        $http({url: "api/torrents/"+torrent.info_hash+"/delete", method: "POST"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing Torrent')
               .position('bottom left')
               .hideDelay(3000)
-          )
-          update()
+          );
+          update();
         }).error(function(err) {
           if(err.status == 401)
-            location.href='/logout'
+            location.href='/logout';
 
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error Removing Torrent: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
-          )
-        })
+          );
+        });
       }, function() {
-      })
-    }
+      });
+    };
 
     $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval)
-    })
+      $timeout.cancel(updateInterval);
+    });
 
 
     $scope.getProgress = function(torrent) {
-      var total = 0
-      var progress = 0
+      var total = 0;
+      var progress = 0;
       for(var i in torrent.files) {
-        total += torrent.files[i].total
-        progress += torrent.files[i].downloaded
-      }
-      return progress / total * 100
-    }
+        var totalChunks = torrent.files[i].totalChunks;
+        var completedChunks = torrent.files[i].completedChunks;
+        total += totalChunks;
+        progress += completedChunks;
+        torrent.files[i].progress = completedChunks / totalChunks;
 
-    $scope.showLinkDialog = function(ev, type){
+      }
+      return progress / total * 100;
+    };
+
+    $scope.showLinkDialog = function(ev){
       $mdDialog.show({
         controller: 'DialogCtrl',
         templateUrl: 'views/dialogs/add_torrent_link.html',
         parent: angular.element(document.body),
         locals: {
           payload: {
-            action: type,
             url: ''
           }
         },
         targetEvent: ev,
         clickOutsideToClose: true
       }).then(function(success) {
-        $http({url: "/api/torrents", method: "POST", params: success}).success(function(){
+        $http({url: "api/torrents", method: "POST", params: success}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Adding Torrent')
               .position('bottom left')
               .hideDelay(3000)
-          )
+          );
         }).error(function(err) {
           if(err.status == 401)
-            location.href='/logout'
+            location.href='/logout';
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error Adding Torrent: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
-          )
-        })
-      }, function() {})
-    }
-  })
+          );
+        });
+      }, function() {});
+    };
+  });
 
   app.filter('ago', function($filter){
     return function(time) {
-      var now = Date.now()/1000
-      var delta = now-time
+      var now = Date.now()/1000;
+      var delta = now-time;
       if(!time)
-        return 'Never'
+        return 'Never';
       if(delta < 0)
-        return 'In The Future'
+        return 'In The Future';
       if(delta < 10)
-        return 'Now'
+        return 'Now';
       if(delta < 60)
-        return 'Moments Ago'
+        return 'Moments Ago';
       if(delta < 60 * 60)
-        return Math.round(delta/60) + ' Minute' + (Math.round(delta/60)!=1?'s':'') + ' Ago'
+        return Math.round(delta/60) + ' Minute' + (Math.round(delta/60)!=1?'s':'') + ' Ago';
       if(delta < 60 * 60 * 24)
-        return Math.round(delta/60/60) + ' Hour' + (Math.round(delta/60/60)!=1?'s':'') + ' Ago'
+        return Math.round(delta/60/60) + ' Hour' + (Math.round(delta/60/60)!=1?'s':'') + ' Ago';
       if(delta < 60 * 60 * 24 * 7)
-        return Math.round(delta/60/60/24) + ' Day' + (Math.round(delta/60/60/24)!=1?'s':'') + ' Ago'
+        return Math.round(delta/60/60/24) + ' Day' + (Math.round(delta/60/60/24)!=1?'s':'') + ' Ago';
       if(delta < 60 * 60 * 24 * 30)
-        return Math.round(delta/60/60/24/7) + ' Week' + (Math.round(delta/60/60/24/7)!=1?'s':'') + ' Ago'
-      return $filter('date')(time * 1000, 'd MMMM yyyy')
-    }
-  })
+        return Math.round(delta/60/60/24/7) + ' Week' + (Math.round(delta/60/60/24/7)!=1?'s':'') + ' Ago';
+      return $filter('date')(time * 1000, 'd MMMM yyyy');
+    };
+  });
 
   app.filter('byte', function($filter) {
     return function(bytes) {
-      if(bytes < 1024) return bytes + " B"
-      else if(bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + " KB"
-      else if(bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + " MB"
-      else return ~~(bytes / 1073741824).toFixed(3) + " GB"
-    }
-  })
+      bytes = ~~bytes;
+      if(bytes < 1024) return bytes + " B";
+      else if(bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + " KB";
+      else if(bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + " MB";
+      else return ~~(bytes / 1073741824).toFixed(3) + " GB";
+    };
+  });
+
 
   app.controller('UserCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
 
-    $scope.users = []
+    $scope.users = [];
 
-    var updateInterval
+    var updateInterval;
 
     var update = function () {
-      $timeout.cancel(updateInterval)
+      $timeout.cancel(updateInterval);
 
-      $http.get('/api/users').success(function(users){
-        var map = {}
+      $http.get('api/users').success(function(users){
+        var map = {};
         for(var i in $scope.users) {
-          var user = $scope.users[i]
-          user.delete_flag = true
-          map[user.id] = user
+          var user = $scope.users[i];
+          user.delete_flag = true;
+          map[user.id] = user;
         }
         for(var i in users) {
-          var user = users[i]
-          var exist = map[user.id]
+          var user = users[i];
+          var exist = map[user.id];
           if(exist) {
-            exist.name = user.name
-            exist.email = user.email
-            exist.level = user.level
-            exist.last_online = user.last_online
-            exist.create_time = user.create_time
-            delete exist.delete_flag
+            exist.name = user.name;
+            exist.email = user.email;
+            exist.level = user.level;
+            exist.last_online = user.last_online;
+            exist.create_time = user.create_time;
+            delete exist.delete_flag;
           } else {
-            $scope.users.push(user)
+            $scope.users.push(user);
           }
         }
         for(var i = 0; i < $scope.users.length; i++) {
-          var user = $scope.users[i]
+          var user = $scope.users[i];
           if(user.delete_flag) {
-            $scope.users.splice(i--, 1)
+            $scope.users.splice(i--, 1);
           }
         }
-        updateInterval = $timeout(update, 20000)
+        updateInterval = $timeout(update, 20000);
       }).error(function(err){
         if(err.status == 401)
-          location.href='/logout'
-        updateInterval = $timeout(update, 5000)
-      })
+          location.href='/logout';
+        updateInterval = $timeout(update, 5000);
+      });
 
-    }
+    };
 
-    update()
+    update();
 
     $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval)
-    })
+      $timeout.cancel(updateInterval);
+    });
 
     $scope.showUserDialog = function(ev, user){
       var editing = !!user
-      var id
+      var id;
       var payload = {
         name: 'User',
         email: '',
         level: 0,
-      }
+      };
       if(editing) {
-        id = user.id
+        id = user.id;
         payload = {
           name: user.name,
           level: user.level,
-        }
+        };
       }
       $mdDialog.show({
         controller: 'DialogCtrl',
@@ -546,27 +564,27 @@
         targetEvent: ev,
         clickOutsideToClose: true
       }).then(function(success) {
-        $http({url: "/api/users" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
+        $http({url: "api/users" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent((editing?"Editing":"Adding")+' User')
               .position('bottom left')
               .hideDelay(3000)
-          )
-          update()
+          );
+          update();
         }).error(function(err) {
           if(err.status == 401)
-            location.href='/logout'
+            location.href='/logout';
 
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error '+(editing?"Editing":"Adding")+' User: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
-          )
-        })
-      }, function() {})
-    }
+          );
+        });
+      }, function() {});
+    };
 
 
     $scope.removeUser = function(ev, user) {
@@ -576,268 +594,268 @@
         .ariaLabel('Confirm')
         .targetEvent(ev)
         .ok('Yes')
-        .cancel('No')
+        .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/users/"+user.id, method: "DELETE"}).success(function(){
+        $http({url: "api/users/"+user.id, method: "DELETE"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing User')
               .position('bottom left')
               .hideDelay(3000)
-          )
-          update()
+          );
+          update();
         }).error(function(err) {
           if(err.status == 401)
-            location.href='/logout'
+            location.href='/logout';
 
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error Removing User: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
-          )
-        })
+          );
+        });
       }, function() {
-      })
-    }
+      });
+    };
 
-  })
+  });
 
   app.controller('SubscriptionCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
-    $scope.listeners = []
-    $scope.user_listeners = []
+    $scope.listeners = [];
+    $scope.user_listeners = [];
 
 
-    var updateInterval
+    var updateInterval;
 
     var update = function () {
-      $timeout.cancel(updateInterval)
+      $timeout.cancel(updateInterval);
 
-      $http.get('/api/listeners').success(function(listeners){
-        var listenerMap = {}
+      $http.get('api/listeners').success(function(listeners){
+        var listenerMap = {};
         for(var i in $scope.listeners) {
-          var listener = $scope.listeners[i]
-          listener.delete_flag = true
-          listenerMap[listener.id] = listener
+          var listener = $scope.listeners[i];
+          listener.delete_flag = true;
+          listenerMap[listener.id] = listener;
         }
         for(var i in listeners) {
-          var listener = listeners[i]
-          var exist = listenerMap[listener.id]
+          var listener = listeners[i];
+          var exist = listenerMap[listener.id];
           if(exist) {
-            exist.name = listener.name
-            exist.pattern = listener.pattern
-            exist.feed_id = listener.feed_id
-            delete exist.delete_flag
+            exist.name = listener.name;
+            exist.pattern = listener.pattern;
+            exist.feed_id = listener.feed_id;
+            delete exist.delete_flag;
           } else {
-            listenerMap[listener.id] = listener
-            $scope.listeners.push(listener)
+            listenerMap[listener.id] = listener;
+            $scope.listeners.push(listener);
           }
         }
         for(var i = 0; i < $scope.listeners.length; i++) {
-          var listener = $scope.listeners[i]
+          var listener = $scope.listeners[i];
           if(listener.delete_flag) {
-            $scope.listeners.splice(i--, 1)
+            $scope.listeners.splice(i--, 1);
           }
         }
       }).success(function() {
-        $http.get('/api/user/listeners').success(function(user_listeners){
-          $scope.user_listeners = user_listeners
-          var sub_map = {}
+        $http.get('api/user/listeners').success(function(user_listeners){
+          $scope.user_listeners = user_listeners;
+          var sub_map = {};
           for(var i in user_listeners) {
-            var sub = user_listeners[i]
-            sub_map[sub.listener_id] = sub
+            var sub = user_listeners[i];
+            sub_map[sub.listener_id] = sub;
           }
           for(var i in $scope.listeners) {
-            var listener = $scope.listeners[i]
-            listener.sub = sub_map[listener.id]
+            var listener = $scope.listeners[i];
+            listener.sub = sub_map[listener.id];
           }
-          updateInterval = $timeout(update, 20000)
+          updateInterval = $timeout(update, 20000);
         }).error(function(err){
           if(err.status == 401)
-            location.href='/logout'
-          updateInterval = $timeout(update, 5000)
-        })
+            location.href='/logout';
+          updateInterval = $timeout(update, 5000);
+        });
 
       }).error(function(err){
         if(err.status == 401)
-          location.href='/logout'
-        updateInterval = $timeout(update, 5000)
-      })
+          location.href='/logout';
+        updateInterval = $timeout(update, 5000);
+      });
 
-    }
+    };
 
     $scope.updateSub = function(listener) {
-      var time = listener.last_update > listener.sub.last_seen ? Math.floor(Date.now()/1000) : listener.last_update - 5
-      $http({url: "/api/user/listeners/" + listener.id, method: "PUT", params: {time: time}}).success(function(){
+      var time = listener.last_update > listener.sub.last_seen ? Math.floor(Date.now()/1000) : listener.last_update - 5;
+      $http({url: "api/user/listeners/" + listener.id, method: "PUT", params: {time: time}}).success(function(){
         $mdToast.show(
           $mdToast.simple()
             .textContent('Updated Subscription')
             .position('bottom left')
             .hideDelay(3000)
-        )
-        listener.sub.last_seen = time
+        );
+        listener.sub.last_seen = time;
       }).error(function(err) {
         if(err.status == 401)
-          location.href='/logout'
+          location.href='/logout';
 
         $mdToast.show(
           $mdToast.simple()
             .textContent('Error Updating Subscription: ',err.message)
             .position('bottom left')
             .hideDelay(3000)
-        )
-      })
-    }
+        );
+      });
+    };
 
-    update()
+    update();
 
     $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval)
-    })
-  })
+      $timeout.cancel(updateInterval);
+    });
+  });
 
   app.controller('FeedCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
 
-    $scope.feeds = []
-    $scope.listeners = []
-    $scope.user_listeners = []
+    $scope.feeds = [];
+    $scope.listeners = [];
+    $scope.user_listeners = [];
 
-    var updateInterval
+    var updateInterval;
 
     var update = function () {
-      $timeout.cancel(updateInterval)
+      $timeout.cancel(updateInterval);
 
-      $http.get('/api/feeds').success(function(feeds){
-        var map = {}
+      $http.get('api/feeds').success(function(feeds){
+        var map = {};
         for(var i in $scope.feeds) {
-          var feed = $scope.feeds[i]
-          feed.delete_flag = true
-          map[feed.id] = feed
+          var feed = $scope.feeds[i];
+          feed.delete_flag = true;
+          map[feed.id] = feed;
         }
         for(var i in feeds) {
-          var feed = feeds[i]
-          var exist = map[feed.id]
+          var feed = feeds[i];
+          var exist = map[feed.id];
           if(exist) {
-            exist.name = feed.name
-            exist.uri = feed.uri
-            exist.creator_id = feed.creator_id
-            exist.last_update = feed.last_update
-            exist.update_duration = feed.update_duration
-            delete exist.delete_flag
+            exist.name = feed.name;
+            exist.uri = feed.uri;
+            exist.creator_id = feed.creator_id;
+            exist.last_update = feed.last_update;
+            exist.update_duration = feed.update_duration;
+            delete exist.delete_flag;
           } else {
-            $scope.feeds.push(feed)
+            $scope.feeds.push(feed);
           }
         }
         for(var i = 0; i < $scope.feeds.length; i++) {
-          var feed = $scope.feeds[i]
+          var feed = $scope.feeds[i];
           if(feed.delete_flag) {
-            $scope.feeds.splice(i--, 1)
+            $scope.feeds.splice(i--, 1);
           }
         }
-        var listenerMap = {}
-        $http.get('/api/listeners').success(function(listeners){
+        var listenerMap = {};
+        $http.get('api/listeners').success(function(listeners){
           for(var i in $scope.listeners) {
-            var listener = $scope.listeners[i]
-            listener.delete_flag = true
-            listenerMap[listener.id] = listener
+            var listener = $scope.listeners[i];
+            listener.delete_flag = true;
+            listenerMap[listener.id] = listener;
           }
           for(var i in listeners) {
-            var listener = listeners[i]
-            var exist = listenerMap[listener.id]
+            var listener = listeners[i];
+            var exist = listenerMap[listener.id];
             if(exist) {
-              exist.name = listener.name
-              exist.pattern = listener.pattern
-              exist.feed_id = listener.feed_id
-              delete exist.delete_flag
+              exist.name = listener.name;
+              exist.pattern = listener.pattern;
+              exist.feed_id = listener.feed_id;
+              delete exist.delete_flag;
             } else {
-              listenerMap[listener.id] = listener
-              $scope.listeners.push(listener)
+              listenerMap[listener.id] = listener;
+              $scope.listeners.push(listener);
             }
           }
           for(var i = 0; i < $scope.listeners.length; i++) {
-            var listener = $scope.listeners[i]
+            var listener = $scope.listeners[i];
             if(listener.delete_flag) {
-              $scope.listeners.splice(i--, 1)
+              $scope.listeners.splice(i--, 1);
             }
           }
         }).success(function() {
-          $http.get('/api/user/listeners').success(function(user_listeners){
-            $scope.user_listeners = user_listeners
-            var sub_map = {}
+          $http.get('api/user/listeners').success(function(user_listeners){
+            $scope.user_listeners = user_listeners;
+            var sub_map = {};
             for(var i in user_listeners) {
-              var sub = user_listeners[i]
-              sub_map[sub.listener_id] = sub
+              var sub = user_listeners[i];
+              sub_map[sub.listener_id] = sub;
             }
             for(var i in $scope.listeners) {
-              var listener = $scope.listeners[i]
-              listener.sub = sub_map[listener.id]
+              var listener = $scope.listeners[i];
+              listener.sub = sub_map[listener.id];
             }
-            updateInterval = $timeout(update, 20000)
+            updateInterval = $timeout(update, 20000);
           }).error(function(err){
             if(err.status == 401)
-              location.href='/logout'
-            updateInterval = $timeout(update, 5000)
-          })
+              location.href='/logout';
+            updateInterval = $timeout(update, 5000);
+          });
 
         }).error(function(err){
           if(err.status == 401)
-            location.href='/logout'
-          updateInterval = $timeout(update, 5000)
-        })
+            location.href='/logout';
+          updateInterval = $timeout(update, 5000);
+        });
         
       }).error(function(err){
         if(err.status == 401)
-          location.href='/logout'
-        updateInterval = $timeout(update, 5000)
-      })
+          location.href='/logout';
+        updateInterval = $timeout(update, 5000);
+      });
 
 
-    }
+    };
 
 
-    update()
+    update();
 
     $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval)
-    })
+      $timeout.cancel(updateInterval);
+    });
 
     $scope.toggleListener = function(listener) {
-      $http({url: "/api/user/listeners"+(listener.sub ? "/" + listener.id : ""), method: (listener.sub ? "DELETE" : "POST"), params: {listener_id: listener.id}}).success(function(){
+      $http({url: "api/user/listeners"+(listener.sub ? "/" + listener.id : ""), method: (listener.sub ? "DELETE" : "POST"), params: {listener_id: listener.id}}).success(function(){
         $mdToast.show(
           $mdToast.simple()
             .textContent((listener.sub?"Removing":"Adding")+' Subscription')
             .position('bottom left')
             .hideDelay(3000)
-        )
-        listener.sub = !listener.sub
+        );
+        listener.sub = !listener.sub;
       }).error(function(err) {
         if(err.status == 401)
-          location.href='/logout'
+          location.href='/logout';
 
         $mdToast.show(
           $mdToast.simple()
             .textContent('Error '+(listener.sub?"Removing":"Adding")+' Subscription: ',err.message)
             .position('bottom left')
             .hideDelay(3000)
-        )
-      })
-    }
+        );
+      });
+    };
 
     $scope.showFeedDialog = function(ev, feed){
-      var editing = !!feed
-      var id
+      var editing = !!feed;
+      var id;
       var payload = {
         url: '',
         name: 'Feed',
         duration: 15
-      }
+      };
       if(editing) {
-        id = feed.id
+        id = feed.id;
         payload = {
           url: feed.uri,
           name: feed.name,
           duration: feed.update_duration
-        }
+        };
       }
       $mdDialog.show({
         controller: 'DialogCtrl',
@@ -850,27 +868,27 @@
         targetEvent: ev,
         clickOutsideToClose: true
       }).then(function(success) {
-        $http({url: "/api/feeds" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
+        $http({url: "api/feeds" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent((editing?"Editing":"Adding")+' Feed')
               .position('bottom left')
               .hideDelay(3000)
-          )
-          update()
+          );
+          update();
         }).error(function(err) {
           if(err.status == 401)
-            location.href='/logout'
+            location.href='/logout';
 
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error '+(editing?"Editing":"Adding")+' Feed: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
-          )
-        })
-      }, function() {})
-    }
+          );
+        });
+      }, function() {});
+    };
 
 
     $scope.removeFeed = function(ev, feed) {
@@ -880,45 +898,45 @@
         .ariaLabel('Confirm')
         .targetEvent(ev)
         .ok('Yes')
-        .cancel('No')
+        .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/feeds/"+feed.id, method: "DELETE"}).success(function(){
+        $http({url: "api/feeds/"+feed.id, method: "DELETE"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing Feed')
               .position('bottom left')
               .hideDelay(3000)
-          )
-          update()
+          );
+          update();
         }).error(function(err) {
           if(err.status == 401)
-            location.href='/logout'
+            location.href='/logout';
 
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error Removing Feed: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
-          )
-        })
+          );
+        });
       }, function() {
-      })
-    }
+      });
+    };
 
     $scope.showListenerDialog = function(ev, feed, listener){
-      var editing = !!listener
-      var id
+      var editing = !!listener;
+      var id;
       var payload = {
         feed_id: feed.id,
         name: 'Listener',
         pattern: '.'
-      }
+      };
       if(editing) {
-        id = listener.id
+        id = listener.id;
         payload = {
           name: listener.name,
           pattern: listener.pattern
-        }
+        };
       }
       $mdDialog.show({
         controller: 'DialogCtrl',
@@ -931,27 +949,27 @@
         targetEvent: ev,
         clickOutsideToClose: true
       }).then(function(success) {
-        $http({url: "/api/listeners" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
+        $http({url: "api/listeners" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent((editing?"Editing":"Adding")+' Listener')
               .position('bottom left')
               .hideDelay(3000)
-          )
-          update()
+          );
+          update();
         }).error(function(err) {
           if(err.status == 401)
-            location.href='/logout'
+            location.href='/logout';
 
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error '+(editing?"Editing":"Adding")+' Listener: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
-          )
-        })
-      }, function() {})
-    }
+          );
+        });
+      }, function() {});
+    };
 
 
     $scope.removeListener = function(ev, listener) {
@@ -961,49 +979,52 @@
         .ariaLabel('Confirm')
         .targetEvent(ev)
         .ok('Yes')
-        .cancel('No')
+        .cancel('No');
       $mdDialog.show(confirm).then(function() {
-        $http({url: "/api/listeners/"+listener.id, method: "DELETE"}).success(function(){
+        $http({url: "api/listeners/"+listener.id, method: "DELETE"}).success(function(){
           $mdToast.show(
             $mdToast.simple()
               .textContent('Removing Listener')
               .position('bottom left')
               .hideDelay(3000)
-          )
-          update()
+          );
+          update();
         }).error(function(err) {
           if(err.status == 401)
-            location.href='/logout'
+            location.href='/logout';
 
           $mdToast.show(
             $mdToast.simple()
               .textContent('Error Removing Listener: ',err.message)
               .position('bottom left')
               .hideDelay(3000)
-          )
-        })
+          );
+        });
       }, function() {
-      })
-    }
+      });
+    };
 
-  })
+  });
 
   app.controller('DialogCtrl', function($scope, $http, locals, $mdDialog) {
-    $scope.locals = locals
+    $scope.locals = locals;
 
     $scope.hide = function() {
-      $mdDialog.hide()
-    }
+      $mdDialog.hide();
+    };
 
     $scope.cancel = function() {
-      $mdDialog.cancel()
-    }
+      $mdDialog.cancel();
+    };
 
     $scope.answer = function (answer) {
-      $mdDialog.hide(answer)
-    }
-  })
+      $mdDialog.hide(answer);
+    };
+  });
+
+  app.controller('FrameCtrl', function($scope) {
+  });
 
 
 
-})()
+})();

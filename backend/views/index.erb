@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang='en' ng-app='SeedboxApp'>
+<html lang="en" ng-app="SeedboxApp">
   <head>
     <title>Home</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,9 +8,9 @@
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=RobotoDraft:300,400,500,700,400italic" /> 
     <link rel="stylesheet" type="text/css" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0-rc2/angular-material.min.css" />
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-    <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
   </head>
-  <body ng-controller='AppCtrl' ng-cloak layout='row'>
+  <body ng-controller="AppCtrl" ng-cloak layout="row">
     <script>
       window.user_id = <%= @user['id'] %>;
       window.user_level = <%= @user['level'] %>;
@@ -23,20 +23,20 @@
 
     <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0-rc2/angular-material.min.js"></script>
 
-    <script src='/js/app.js'></script>
+    <script src="js/app.js"></script>
 
-    <md-sidenav layout='column' class='md-sidenav-left md-whiteframe-z2' md-component-id='nav' md-is-locked-open="$mdMedia('gt-md')">
-      <md-toolbar class='md-tall md-hue-2'>
+    <md-sidenav layout="column" class="md-sidenav-left md-whiteframe-z2" md-component-id="nav" md-is-locked-open="$mdMedia('gt-md')">
+      <md-toolbar class="md-tall md-hue-2">
         <span flex></span>
-          <div layout='column' class='md-toolbar-tools-bottom inset'>
-            <div style='font-size: 1.5em;'><%= @user['name'] %></div>
-            <div style='font-size: 0.75em;'>{{levels[level]}} #{{id}}</div>
-            <div style='font-size: 0.5em;'><%= @user['email'] %></div>
+          <div layout="column" class="md-toolbar-tools-bottom inset">
+            <div style="font-size: 1.5em;"><%= @user['name'] %></div>
+            <div style="font-size: 0.75em;">{{levels[level]}} #{{id}}</div>
+            <div style="font-size: 0.5em;"><%= @user['email'] %></div>
           </div>
       </md-toolbar>
 
-      <md-list style='overflow-y: auto;'>
-        <md-list-item ng-repeat="item in menu" ng-if='level >= item.perm' ng-click="setPath(item.path)">
+      <md-list style="overflow-y: auto;">
+        <md-list-item ng-repeat="item in menu" ng-if="level >= item.perm" ng-click="setPath(item.path)">
           <md-icon>{{item.icon}}</md-icon>
           <p>{{item.title}}</p>
         </md-list-item>
@@ -48,9 +48,9 @@
       </md-list>
     </md-sidenav>
 
-    <md-content layout='column' layout-fill class='bg'>
-      <md-toolbar layout="column" class='md-whiteframe-z1'>
-        <div class='md-toolbar-tools'>
+    <md-content layout="column" layout-fill class="bg">
+      <md-toolbar layout="column" class="md-whiteframe-z1">
+        <div class="md-toolbar-tools">
           <md-button class="md-icon-button" ng-click="toggleSideNav('nav')" hide-gt-md aria-label="Menu">
             <md-icon>menu</md-icon>
           </md-button>
@@ -60,7 +60,7 @@
         </div>
       </md-toolbar>
 
-      <div ng-view ng-cloak style='overflow: auto;' layout-fill>
+      <div ng-view ng-cloak style="overflow: auto;" layout-fill>
       </div>
     </md-content>
 
