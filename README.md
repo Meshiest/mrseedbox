@@ -1,6 +1,6 @@
 ## Mr Seedbox
 
-### 1.5(new) screenshots
+### Screenshots
 
 ![](http://i.imgur.com/WDeD1Is.png)
 ![](http://i.imgur.com/tMiGwxQ.png)
@@ -34,6 +34,7 @@
 * `cp settings.json transmission/config/settings.json` (and make neccessary dirs)
 * The **first person to connect and auth will be the "owner"**
 * You will have to go through the initial emby setup at `localhost:8096`!
+* If you are migrating from the old versions, you may have to `docker build backend` before starting the containers
 
 ### Commands (from shell):
 
