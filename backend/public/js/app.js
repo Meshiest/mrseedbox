@@ -249,7 +249,7 @@
     $scope.extendLimit = 0;
 
     $scope.getOrder = function () {
-      return $scope.search.length ? "name" : "id";
+      return $scope.search.length ? "name" : "creationDate";
     };
 
     $scope.increaseLimit = function() {
