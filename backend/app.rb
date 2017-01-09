@@ -1082,7 +1082,7 @@ class Server < Sinatra::Base
       end
       begin
         feedData = nil
-        open(feed['uri'], {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE, :allow_redirections => :safe}) do |rss|
+        open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE, :allow_redirections => :safe}) do |rss|
           feedData = RSS::Parser.parse(rss)
         end
       rescue
