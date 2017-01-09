@@ -249,7 +249,7 @@
     $scope.extendLimit = 0;
 
     $scope.getOrder = function () {
-      return $scope.search.length ? "name" : "creationDate";
+      return $scope.search.length ? "name" : "date";
     };
 
     $scope.increaseLimit = function() {
@@ -279,14 +279,17 @@
 
       $http.get('api/torrents').success(function(torrents){
         var map = {};
+        var torrent;
         for(var i in $scope.torrents) {
-          var torrent = $scope.torrents[i];
+          torrent = $scope.torrents[i];
           torrent.delete_flag = true;
           map[torrent.info_hash] = torrent;
         }
-        for(var i in torrents) {
-          var torrent = torrents[i];
+        for(var j in torrents) {
+          torrent = torrents[j];
           torrent.progress = $scope.getProgress(torrent);
+          var date = torrent.creationDate;
+          torrent.date = new Date(date.substr(3,2)+"/"+date.substr(0,2)+"/"+date.substr(6,4)).getTime();
           var exist = map[torrent.info_hash];
           if(exist) {
             exist.name = torrent.name;
@@ -296,17 +299,17 @@
             exist.status = torrent.status;
             exist.progress = torrent.progress;
             exist.completed = torrent.completed;
-            exist.creationDate = torrent.creationDate;
+            exist.date = torrent.date;
             exist.files = sanitizeNames(torrent.files);
             delete exist.delete_flag;
           } else {
             $scope.torrents.push(torrent);
           }
         }
-        for(var i = 0; i < $scope.torrents.length; i++) {
-          var torrent = $scope.torrents[i];
+        for(var k = 0; k < $scope.torrents.length; k++) {
+          torrent = $scope.torrents[k];
           if(torrent.delete_flag) {
-            $scope.torrents.splice(i--, 1);
+            $scope.torrents.splice(k--, 1);
           }
         }
         updateInterval = $timeout(update, 5000);
