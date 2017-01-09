@@ -288,6 +288,7 @@
         for(var j in torrents) {
           torrent = torrents[j];
           torrent.progress = $scope.getProgress(torrent);
+          torrent.files = sanitizeNames(torrent.files);
           var date = torrent.creationDate;
           torrent.date = new Date(date.substr(3,2)+"/"+date.substr(0,2)+"/"+date.substr(6,4)).getTime();
           var exist = map[torrent.info_hash];
@@ -300,7 +301,7 @@
             exist.progress = torrent.progress;
             exist.completed = torrent.completed;
             exist.date = torrent.date;
-            exist.files = sanitizeNames(torrent.files);
+            exist.files = torrent.files;
             delete exist.delete_flag;
           } else {
             $scope.torrents.push(torrent);
