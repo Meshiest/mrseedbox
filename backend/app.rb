@@ -1153,7 +1153,7 @@ class Server < Sinatra::Base
             open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE, :allow_redirections => :safe}) do |rss|
               feedData = RSS::Parser.parse(rss)
             end
-            mysql.query("UPDATE feeds SET uri=#{uri} WHERE id=#{target_id};")
+            mysql.query("UPDATE feeds SET uri='#{uri}' WHERE id=#{target_id};")
           rescue
             status 422
             return {
