@@ -32,7 +32,7 @@
           </div>
         </div>
         <span flex></span>
-        <md-button class="md-icon-button" ng-show="torrent.progress == 100 && torrent.files.length == 1" ng-href="/api/dl?file={{torrent.files[0].link}}" target="_blank">
+        <md-button class="md-icon-button" ng-show="torrent.progress == 100 && torrent.files.length == 1 && torrent.files[0].link" ng-href="/api/dl?file={{torrent.files[0].link}}" target="_blank">
           <md-icon>
             file_download
           </md-icon>
@@ -59,7 +59,7 @@
           </div>
         </div>
         <div flex="10">
-          <md-button ng-show="file.progress == 1" class="md-icon-button" ng-href="/api/dl?file={{file.link}}">
+          <md-button ng-show="file.progress == 1 && file.link" class="md-icon-button" ng-href="/api/dl?file={{file.link}}">
             <md-icon>file_download</md-icon>
           </md-button>
         </div>
