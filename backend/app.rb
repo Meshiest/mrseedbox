@@ -1145,6 +1145,31 @@ class Server < Sinatra::Base
         mysql.query("UPDATE feeds SET update_duration=#{duration} WHERE id=#{target_id};")
       end
 
+      uri = params[:url]
+      if uri
+        if /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/=]*)$/i.match(uri) && uri.length <= 256
+          begin
+            feedData = nil
+            open(uri, {ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE, :allow_redirections => :safe}) do |rss|
+              feedData = RSS::Parser.parse(rss)
+            end
+            mysql.query("UPDATE feeds SET uri=#{uri} WHERE id=#{target_id};")
+          rescue
+            status 422
+            return {
+              status: 422,
+              message: "Invalid Parameters (URL not RSS feed)",
+            }.to_json
+          end
+        else
+          status 422
+          return {
+            status: 422,
+            message: "Invalid Parameters (URL doesn't match URL regex)",
+          }.to_json
+        end
+      end
+
       status 200
       {
         status: 200,
