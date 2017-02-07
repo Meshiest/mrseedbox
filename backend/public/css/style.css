@@ -12,3 +12,24 @@ md-sidenav ng-md-icon {
   position: relative;
   top: 5px;
 }
+
+ng-view, .page-container {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: flex-start;
+}
+
+ng-view {
+  height: 100%;
+}
+
+.page-container {
+  overflow-y: auto;
+}
+
+.page-container > iframe {
+  border: none;
+  flex-grow: 1;
+}

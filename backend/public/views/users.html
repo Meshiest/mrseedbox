@@ -1,38 +1,41 @@
-<div style="max-height: calc(100% - 64px); overflow-y: auto;">
+<!DOCTYPE html>
+<div class="page-container">
 
   <div style="text-align: center; padding: 2em; font-size: 2em; color: #999;" flex ng-hide="users.length">
     Nothing Here!
   </div>
 
-  <md-card ng-repeat="user in users">
-    <md-toolbar>
-      <div class="md-toolbar-tools" layout="row">
-        <div flex="15" layout="row" style="overflow: hidden;">
-          {{levels[user.level]}}
-          <div style="text-align: right;" flex>#{{user.id}}</div>
+  <div>
+    <md-card ng-repeat="user in users">
+      <md-toolbar>
+        <div class="md-toolbar-tools" layout="row">
+          <div flex="15" layout="row" style="overflow: hidden;">
+            {{levels[user.level]}}
+            <div style="text-align: right;" flex>#{{user.id}}</div>
+          </div>
+          <div layout="column" flex="40" style="margin-left: 1em;">
+            <div>{{user.name}}</div>
+            <div style="font-size: 0.5em;">{{user.email}}</div>
+          </div>
+          <div layout="column" flex="30">
+            <div style="font-size: 0.75em;">Online {{user.last_online | ago}}</div>
+            <div style="font-size: 0.5em;">{{(user.create_time * 1000) | date:'d MMMM yyyy'}}</div>
+          </div>
+          <span flex></span>
+          <md-button class="md-icon-button" ng-if="level >= PERMISSIONS.EDIT_USER" ng-click="removeUser($event, user)">
+            <md-icon>
+              delete
+            </md-icon>
+          </md-button>
+          <md-button class="md-icon-button" ng-click="showUserDialog($event, user)" ng-if="level >= PERMISSIONS.EDIT_USER || user.id == id">
+            <md-icon>
+              create
+            </md-icon>
+          </md-button>
         </div>
-        <div layout="column" flex="40" style="margin-left: 1em;">
-          <div>{{user.name}}</div>
-          <div style="font-size: 0.5em;">{{user.email}}</div>
-        </div>
-        <div layout="column" flex="30">
-          <div style="font-size: 0.75em;">Online {{user.last_online | ago}}</div>
-          <div style="font-size: 0.5em;">{{(user.create_time * 1000) | date:'d MMMM yyyy'}}</div>
-        </div>
-        <span flex></span>
-        <md-button class="md-icon-button" ng-if="level >= PERMISSIONS.EDIT_USER" ng-click="removeUser($event, user)">
-          <md-icon>
-            delete
-          </md-icon>
-        </md-button>
-        <md-button class="md-icon-button" ng-click="showUserDialog($event, user)" ng-if="level >= PERMISSIONS.EDIT_USER || user.id == id">
-          <md-icon>
-            create
-          </md-icon>
-        </md-button>
-      </div>
-    </md-toolbar>
-  </md-card>
+      </md-toolbar>
+    </md-card>
+  </div>
 </div>
 
 <div>

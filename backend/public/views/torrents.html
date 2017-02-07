@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <md-toolbar>
   <div class="md-toolbar-tools">
     <md-input-container class="md-block" flex style="margin: 0;">
@@ -9,63 +10,64 @@
   </div>
 </md-toolbar>
 
-<div style="max-height: calc(100% - 128px); overflow-y: auto;">
+<div class="page-container">
 
   <div style="text-align: center; padding: 2em; font-size: 2em; color: #999;" flex ng-hide="(torrents | filter:{name: search}).length">
     Nothing Here!
   </div>
-
-  <md-card ng-repeat="torrent in torrents | filter:{name: search} | orderBy:getOrder():true" layout="column">
-    <md-toolbar md-theme="status_{{torrent.status}}">
-      <div class="md-toolbar-tools" layout="row">
-        <div layout="column">
-          <div style="font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;">
-            {{torrent.name}}
+  <div>
+    <md-card ng-repeat="torrent in torrents | filter:{name: search} | orderBy:getOrder():true" layout="column">
+      <md-toolbar md-theme="status_{{torrent.status}}">
+        <div class="md-toolbar-tools" layout="row">
+          <div layout="column">
+            <div style="font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;">
+              {{torrent.name}}
+            </div>
+            <div style="font-size: 0.5em;">
+              <span ng-show="torrent.status == 'downloading'">
+                {{torrent.completed}} /
+              </span>
+              <span>
+                {{torrent.size}}
+              </span>
+            </div>
           </div>
-          <div style="font-size: 0.5em;">
-            <span ng-show="torrent.status == 'downloading'">
-              {{torrent.completed}} /
-            </span>
-            <span>
-              {{torrent.size}}
-            </span>
-          </div>
-        </div>
-        <span flex></span>
-        <md-button class="md-icon-button" ng-show="torrent.progress == 100 && torrent.files.length == 1 && torrent.files[0].link" ng-href="/api/dl?file={{torrent.files[0].link}}" target="_blank">
-          <md-icon>
-            file_download
-          </md-icon>
-        </md-button>
-        <md-button class="md-icon-button" ng-show="torrent.files.length > 1" ng-click="toggleTorrent(torrent)" style="margin-right: 6px !important;">
-          <md-icon>
-            {{ torrent.toggle ? 'expand_less' : 'expand_more' }}
-          </md-icon>
-        </md-button>
-      </div>
-    </md-toolbar>
-    <md-progress-linear md-theme="status_seeding" ng-hide="torrent.progress == 100" md-mode="determinate" value="{{torrent.progress}}"></md-progress-linear>
-    <md-list flex ng-show="torrent.toggle">
-      <md-list-item ng-repeat="file in torrent.files" layout="row">
-        <div flex="90" layout="column" style="padding-left: 1em;">
-          <div style="font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;">
-            {{file.name}}
-          </div>
-          <div style="font-size: 0.5em;">
-            <span ng-if="file.progress != 1">
-              {{file.progress * file.size | byte}} / 
-            </span>
-            {{file.size | byte }}
-          </div>
-        </div>
-        <div flex="10">
-          <md-button ng-show="file.progress == 1 && file.link" class="md-icon-button" ng-href="/api/dl?file={{file.link}}">
-            <md-icon>file_download</md-icon>
+          <span flex></span>
+          <md-button class="md-icon-button" ng-show="torrent.progress == 100 && torrent.files.length == 1 && torrent.files[0].link" ng-href="/api/dl?file={{torrent.files[0].link}}" target="_blank">
+            <md-icon>
+              file_download
+            </md-icon>
+          </md-button>
+          <md-button class="md-icon-button" ng-show="torrent.files.length > 1" ng-click="toggleTorrent(torrent)" style="margin-right: 6px !important;">
+            <md-icon>
+              {{ torrent.toggle ? 'expand_less' : 'expand_more' }}
+            </md-icon>
           </md-button>
         </div>
-      </md-list-item>
-    </md-list>
-  </md-card>
+      </md-toolbar>
+      <md-progress-linear md-theme="status_seeding" ng-hide="torrent.progress == 100" md-mode="determinate" value="{{torrent.progress}}"></md-progress-linear>
+      <md-list flex ng-show="torrent.toggle">
+        <md-list-item ng-repeat="file in torrent.files" layout="row">
+          <div flex="90" layout="column" style="padding-left: 1em;">
+            <div style="font-size: 0.75em; overflow-wrap: nowrap; overflow: hidden;">
+              {{file.name}}
+            </div>
+            <div style="font-size: 0.5em;">
+              <span ng-if="file.progress != 1">
+                {{file.progress * file.size | byte}} / 
+              </span>
+              {{file.size | byte }}
+            </div>
+          </div>
+          <div flex="10">
+            <md-button ng-show="file.progress == 1 && file.link" class="md-icon-button" ng-href="/api/dl?file={{file.link}}">
+              <md-icon>file_download</md-icon>
+            </md-button>
+          </div>
+        </md-list-item>
+      </md-list>
+    </md-card>
+  </div>
 </div>
 
 <div style="position: absolute; bottom: 1em; right: 1em;">
