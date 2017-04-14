@@ -79,6 +79,10 @@
       controller: 'FrameCtrl',
       templateUrl: 'views/rutorrent.html'
     }).
+    when('/couchpotato', {
+      controller: 'FrameCtrl',
+      templateUrl: 'views/couchpotato.html'
+    }).
     when('/emby', {
       controller: 'FrameCtrl',
       templateUrl: 'views/emby.html'
@@ -149,6 +153,11 @@
       title: 'RuTorrent',
       icon: 'library_books',
       path: '/rutorrent',
+      perm: PERMISSIONS.EDIT_TORRENT,
+    }, {
+      title: 'Couch Potato',
+      icon: 'local_movies',
+      path: '/couchpotato',
       perm: PERMISSIONS.EDIT_TORRENT,
     }, {
       title: 'Emby',

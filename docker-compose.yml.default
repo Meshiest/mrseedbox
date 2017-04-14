@@ -2,7 +2,7 @@ db:
   image: mysql
   restart: always
   volumes:
-    - ./mysql:/var/lib/mysql
+    - ./mysql:/var/lib/mysql # Database Directory
   env_file: 
     - ./common.env
   expose:
@@ -26,8 +26,8 @@ rtorrent:
   image: linuxserver/rutorrent
   restart: always
   volumes:
-    - ./rtorrent/config:/config
-    - ./rtorrent/downloads:/downloads
+    - ./rtorrent/config:/config # RuTorrent Config Directory
+    - ./rtorrent/downloads:/downloads # Media Directory
   environment:
     PGID: 1000 # get 'gid' from `id <yourusername>`
     PUID: 1000 # get 'uid' from `id <yourusername>`
@@ -43,28 +43,42 @@ backend:
     - ./common.env
   volumes:
     - ./backend:/app
-    - ./rtorrent/downloads:/downloads
+    - ./rtorrent/downloads:/downloads # Media Directory
   links:
     - db:mysql
     - rtorrent:rtorrent
     - emby:emby
     - redis:redis
+    - couchpotato:couchpotato
 
 # how easy :)
 redis:
   image: redis
   restart: always
 
+couchpotato:
+  image: linuxserver/couchpotato
+  volumes:
+    - ./couchpotato:/config # Couch Potato Config Directory
+    - ./rtorrent/downloads:/downloads # Media Directory
+    - ./rtorrent/downloads:/movies # Media Directory
+  environment:
+    PGID: 1000 # get 'gid' from `id <yourusername>`
+    PUID: 1000 # get 'uid' from `id <yourusername>`
+  ports:
+    - "5050:5050"
+  links:
+    - rtorrent:rtorrent
 
 nginx:
   image: nginx
   restart: always
   volumes:
-   - ./nginx.conf:/etc/nginx/conf.d/default.conf
-   - ./backend/cert.crt:/etc/ssl/certs/cert.crt
-   - ./backend/key.pem:/etc/ssl/private/key.pem
+    - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    - ./backend/cert.crt:/etc/ssl/certs/cert.crt
+    - ./backend/key.pem:/etc/ssl/private/key.pem
   ports:
    - "443:443"
   links:
-    - emby:emby
     - backend:backend
+    - emby:emby

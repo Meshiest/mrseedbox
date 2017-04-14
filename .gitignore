@@ -8,3 +8,5 @@ transmission
 backend/key.pem
 backend/cert.crt
 backend/debug
+couchpotato/**
+

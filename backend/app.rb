@@ -289,19 +289,15 @@ class Server < Sinatra::Base
     erb :oops
   end
 
-  # ruTorrent Reverse Proxy
-
-  get '/rutorrent/*' do
+  # Proxy a get request
+  def proxy_get path, perm
     user_id = session[:user_id]
-    if !hasPerm user_id, :EDIT_TORRENT
+    if !hasPerm user_id, perm
       status 404
       erb :oops
     else
       begin
-        path = "http://#{request.path.gsub(/^\/rutorrent\//,'rtorrent/')}"
-        #build http party url
         mapped_headers = get_headers
-
         response = HTTParty.get(
           path,
           query: params.select { |k,v|
@@ -331,14 +327,14 @@ class Server < Sinatra::Base
     end
   end
 
-  post '/rutorrent/*' do
+  # Proxy a post request
+  def proxy_post path, perm
     user_id = session[:user_id]
-    if !hasPerm user_id, :EDIT_TORRENT
+    if !hasPerm user_id, perm
       status 404
       erb :oops
     else
       begin
-        path = "http://#{request.path.gsub(/^\/rutorrent\//,'rtorrent/')}"
         mapped_headers = get_headers
         response = HTTParty.post(path, body: request.body.read.to_s, headers: mapped_headers)
         status response.code
@@ -362,8 +358,35 @@ class Server < Sinatra::Base
     end
   end
 
-  # emby Reverse Proxy
+  # ruTorrent Reverse Proxy
+  get '/rutorrent/*' do
+      path = "http://#{request.path.gsub(/^\/rutorrent\//,'rtorrent/')}"
+      perm = :EDIT_TORRENT
+      proxy_get path, perm        
+  end
 
+  post '/rutorrent/*' do
+    path = "http://#{request.path.gsub(/^\/rutorrent\//,'rtorrent/')}"
+    perm = :EDIT_TORRENT
+    proxy_post path, perm    
+  end
+
+  # Couch Potato Reverse Proxy
+  get '/couchpotato/*' do
+    path = "http://#{request.path.gsub(/^\/couchpotato\//,'couchpotato:5050/couchpotato/')}"
+    puts "Path (COUCHPOTATO): #{path}"
+    perm = :EDIT_TORRENT
+    proxy_get path, perm 
+  end
+
+  post '/couchpotato/*' do
+    path = "http://#{request.path.gsub(/^\/couchpotato\//,'couchpotato:5050/couchpotato/')}"
+    puts "Path POST (COUCHPOTATO): #{path}"
+    perm = :EDIT_TORRENT
+    proxy_post path, perm
+  end
+
+  # emby reverse proxy is slightly different
   get '/mb/*' do
     user_id = session[:user_id]
     if !hasPerm user_id, :READ_TORRENT
