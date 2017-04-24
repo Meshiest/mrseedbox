@@ -47,6 +47,10 @@ PERMISSIONS = {
   READ_TORRENT:      0,
   EDIT_SUBSCRIPTION: 0,
   READ_SUBSCRIPTION: 0,
+  OWNER_LEVEL:       3,
+  EDITOR_LEVEL:      2,
+  MEMBER_LEVEL:      1,
+  VISITOR_LEVEL:     0,
 }
 
 # rtorrent client
@@ -293,7 +297,7 @@ class Server < Sinatra::Base
 
   get '/rutorrent/*' do
     user_id = session[:user_id]
-    if !hasPerm user_id, :EDIT_TORRENT
+    if !hasPerm user_id, :EDITOR_LEVEL
       status 404
       erb :oops
     else
@@ -333,7 +337,7 @@ class Server < Sinatra::Base
 
   post '/rutorrent/*' do
     user_id = session[:user_id]
-    if !hasPerm user_id, :EDIT_TORRENT
+    if !hasPerm user_id, :EDITOR_LEVEL
       status 404
       erb :oops
     else

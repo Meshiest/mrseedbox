@@ -126,6 +126,10 @@
       READ_TORRENT:      0,
       EDIT_SUBSCRIPTION: 0,
       READ_SUBSCRIPTION: 0,
+      OWNER_LEVEL:       3,
+      EDITOR_LEVEL:      2,
+      MEMBER_LEVEL:      1,
+      VISITOR_LEVEL:     0,
     };
 
     $scope.levels = {
@@ -149,7 +153,7 @@
       title: 'RuTorrent',
       icon: 'library_books',
       path: '/rutorrent',
-      perm: PERMISSIONS.EDIT_TORRENT,
+      perm: PERMISSIONS.EDITOR_LEVEL,
     }, {
       title: 'Emby',
       icon: 'video_library',
