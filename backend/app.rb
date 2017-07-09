@@ -930,7 +930,7 @@ class Server < Sinatra::Base
       end
       pattern = params[:pattern] || '.'
       name = params[:name] || "Listener for #{feed_id} #{pattern}"
-      unless /^[a-z0-9_-]{1,48}$/i.match(name) && /^[a-z0-9().*+?|\[\]-]{1,48}$/i.match(pattern)
+      unless /^[a-z0-9 _-]{1,48}$/i.match(name) && /^[a-z0-9 ().*+?|\[\]-]{1,48}$/i.match(pattern)
         status 422
         return {
           status: 422,
@@ -1077,11 +1077,11 @@ class Server < Sinatra::Base
       if duration
         duration = duration.to_i rescue 15
       end
-      unless name && uri && /^[a-z0-9_-]{1,48}$/i.match(name) && /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/=]*)$/i.match(uri) && name.length > 0 && name.length <= 48 && uri.length <= 256
+      unless name && uri && /^[a-z0-9 _-]{1,48}$/i.match(name) && /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/=]*)$/i.match(uri) && name.length > 0 && name.length <= 48 && uri.length <= 256
         status 422
         return {
           status: 422,
-          message: "Invalid Parameters (Bad name(#{/^[a-z0-9_-]{1,48}$/i.match(name)}) or uri",
+          message: "Invalid Parameters (Bad name(#{/^[a-z0-9 _-]{1,48}$/i.match(name)}) or uri",
         }.to_json
       end
       begin
