@@ -54,6 +54,7 @@
             </div>
             <div layout="column" flex="40">
               <div style="font-size: 0.75em;">Updated {{listener.last_update | ago}}</div>
+              <div style="font-size: 0.5em;">{{listener.subscribers}} subscribers</div>
             </div>
             <div layout="row" layout-align="end" flex="20">
               <md-button class="md-icon-button" ng-click="removeListener($event, listener)" ng-if="level >= PERMISSIONS.EDIT_LISTENER">

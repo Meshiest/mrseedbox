@@ -897,7 +897,7 @@ class Server < Sinatra::Base
     else
       status 200
       updateUserStatus user_id
-      result = mysql.query("SELECT * FROM listeners;")
+      result = mysql.query("SELECT *, (SELECT COUNT(*) FROM user_listeners WHERE listener_id=id) as subscribers FROM listeners;")
       listeners = []
       result.each do |listener|
         listeners << listener
