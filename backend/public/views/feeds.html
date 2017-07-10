@@ -9,7 +9,7 @@
       <md-toolbar>
         <div class="md-toolbar-tools" layout="row">
           <div flex="50" layout="column">
-            <div>{{feed.name}} <span style="font-size: 0.5em">Created By #{{feed.creator_id}}</span></div>
+            <div>{{feed.name}} <span style="font-size: 0.5em">Created By {{feed.creator_name}}</span></div>
             <div style="font-size: 0.5em">{{feed.uri}}</div>
           </div>
           <div flex="30" layout="column">
@@ -60,6 +60,11 @@
               <md-button class="md-icon-button" ng-click="removeListener($event, listener)" ng-if="level >= PERMISSIONS.EDIT_LISTENER">
                 <md-icon>
                 delete
+                </md-icon>
+              </md-button>
+              <md-button class="md-icon-button" ng-click="sortListener($event, listener)" ng-if="level >= PERMISSIONS.EDIT_FEED">
+                <md-icon>
+                  sort
                 </md-icon>
               </md-button>
               <md-button class="md-icon-button" ng-click="showListenerDialog($event, feed, listener)" ng-if="level >= PERMISSIONS.EDIT_LISTENER">

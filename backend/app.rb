@@ -4,6 +4,7 @@ require 'base64'
 require 'httparty'
 require 'json'
 require 'mysql2'
+require 'fileutils'
 require 'oauth2'
 require 'open-uri'
 require 'open_uri_redirections'
@@ -157,8 +158,13 @@ Thread.start {
   loop {
     begin
       feeds = mysql.query("SELECT * FROM feeds;")
+
+      calls = []
+
       to_add = []
       now = Time.now.to_i
+
+      # Check each feed
       feeds.each do |feed|
         shouldUpdateFeed = false
         if feed['update_duration'] * 60 + (feed['last_update'] || 0) < now
@@ -172,6 +178,7 @@ Thread.start {
               shouldUpdate = false
               feedData.items.each do |item|
                 updateTime = item.pubDate.to_i
+                # Our pattern matches the title
                 if pattern.match(item.title) && updateTime >= (listener['last_update'] || 0)
                   shouldUpdate = true
                   shouldUpdateFeed = true
@@ -188,11 +195,12 @@ Thread.start {
       end
       to_add.uniq!
       to_add.each do |link|
-        begin
-          puts "Adding #{link}"
-          $xmlrpc.call('load_start', link)
-        rescue
-        end
+        calls << {methodName: 'load_start', params: [link]}
+      end
+      begin
+        $xmlrpc.call('system.multicall', calls)
+      rescue
+        puts "multicall broke", $!.backtrace
       end
     rescue
     end
@@ -218,7 +226,7 @@ def updateUserStatus user_id
 end
 
 def isDebug
-  File.exists?('debug')
+  File.exist?('debug')
 end
 
 def hasPerm user_id, permission
@@ -241,7 +249,7 @@ def redirect_uri
 end
 
 # ssl & config
-unless File.exists?("cert.crt") && File.exists?("key.pem")
+unless File.exist?("cert.crt") && File.exist?("key.pem")
   raise "Please run ./setup to generate a SSL Cert"
 end
 
@@ -930,7 +938,7 @@ class Server < Sinatra::Base
       end
       pattern = params[:pattern] || '.'
       name = params[:name] || "Listener for #{feed_id} #{pattern}"
-      unless /^[a-z0-9 _-]{1,48}$/i.match(name) && /^[a-z0-9 ().*+?|\[\]-]{1,48}$/i.match(pattern)
+      unless /^[a-z0-9 _-]{1,48}$/i.match(name) && /^[a-z0-9 <>\\().*+?|\[\]-]{1,48}$/i.match(pattern)
         status 422
         return {
           status: 422,
@@ -969,7 +977,7 @@ class Server < Sinatra::Base
         }.to_json
       end
       if params[:name]
-        unless /^[a-z0-9_-]{1,256}$/i.match(params[:name])
+        unless /^[a-z0-9 _-]{1,256}$/i.match(params[:name])
           status 422
           return {
             status: 422,
@@ -979,7 +987,7 @@ class Server < Sinatra::Base
         mysql.query("UPDATE listeners SET name='#{params[:name]}' WHERE id=#{target_id};")
       end
       if params[:pattern]
-        unless /^[a-z0-9().*+?|\[\]-]{1,48}$/i.match(params[:pattern])
+        unless /^[a-z0-9 <>\\().*+?|\[\]-]{1,48}$/i.match(params[:pattern])
           status 422
           return {
             status: 422,
@@ -989,6 +997,81 @@ class Server < Sinatra::Base
         mysql.query("UPDATE listeners SET pattern='#{params[:pattern]}' WHERE id=#{target_id};")
       end
 
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
+  post '/api/listeners/:id/sort' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = params[:id].to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_FEED)
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      listener = mysql.query("SELECT * FROM listeners WHERE id=#{target_id}").first
+      unless listener
+        status 404
+        return {
+          status: 404,
+          message: "Listener Not Found",
+        }.to_json
+      end
+
+      # Get all of the files that are similar to our listener
+      files = (Dir['/downloads/incoming/*'] + Dir['/downloads/completed/*'])
+        .select{ |name|
+          not File.directory?(name) and name.match(/#{listener['pattern']}/i)
+        }
+
+      torrents = []
+      # Get all of our active torrents
+      begin
+        torrents = $xmlrpc.call('system.multicall',
+          $xmlrpc.call('download_list').map{ |torrent|
+            ['d.get_name', 'd.hash', 'd.get_directory', 'd.get_complete']
+              .map{ |command|
+                {methodName: command, params: [torrent]}
+              }
+            }.flatten
+        ).each_slice(4).map(&:flatten).map{ |name, hash, dir, complete| {
+          name: name,
+          hash: hash,
+          dir: dir,
+          complete: complete,
+        }}
+      rescue
+        puts $!.backtrace
+      end
+
+      # Find all the torrents that match the file search criteria
+      torrents.select!{ |torrent|
+        files.include? "#{torrent[:dir]}/#{torrent[:name]}" and torrent[:name].match(/#{listener['pattern']}/i)
+      }
+
+      # Erase all the torrents
+      $xmlrpc.call('system.multicall', torrents.map{|t| {
+        methodName: 'd.erase',
+        params: [t[:hash]]
+      }})
+
+      # Move the remaining torrents
+      puts "Files: #{files*', '}"
+      path = "/downloads/completed/#{listener['name']}"
+      Dir.mkdir path unless Dir.exist? path
+      puts FileUtils.mv files, path + ?/, :verbose => true
+    
       status 200
       {
         status: 200,
@@ -1051,7 +1134,7 @@ class Server < Sinatra::Base
     else
       status 200
       updateUserStatus user_id
-      result = mysql.query("SELECT * FROM feeds;")
+      result = mysql.query("SELECT *, (SELECT name FROM users WHERE id=creator_id) as creator_name FROM feeds;")
       feeds = []
       result.each do |feed|
         feeds << feed
