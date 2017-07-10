@@ -159,7 +159,6 @@ Thread.start {
     begin
       feeds = mysql.query("SELECT * FROM feeds;")
 
-      puts "Torrents: #{torrents.to_json}"
       calls = []
 
       to_add = []
@@ -168,7 +167,6 @@ Thread.start {
       # Check each feed
       feeds.each do |feed|
         shouldUpdateFeed = false
-
         if feed['update_duration'] * 60 + (feed['last_update'] || 0) < now
           begin
             feedData = nil

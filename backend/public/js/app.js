@@ -1012,6 +1012,37 @@
       });
     };
 
+    $scope.sortListener = function(ev, listener) {
+      var confirm = $mdDialog.confirm()
+        .title('Confirm Sort')
+        .textContent('Are you certain you want to sort this listener?')
+        .ariaLabel('Confirm')
+        .targetEvent(ev)
+        .ok('Yes')
+        .cancel('No');
+      $mdDialog.show(confirm).then(function() {
+        $http({url: "api/listeners/"+listener.id+"/sort", method: "POST"}).success(function(){
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Sorted Listener')
+              .position('bottom left')
+              .hideDelay(3000)
+          );
+        }).error(function(err) {
+          if(err.status == 401)
+            location.href='/logout';
+
+          $mdToast.show(
+            $mdToast.simple()
+              .textContent('Error Sorting Listener: ',err.message)
+              .position('bottom left')
+              .hideDelay(3000)
+          );
+        });
+      }, function() {
+      });
+    };
+
   });
 
   app.controller('DialogCtrl', function($scope, $http, locals, $mdDialog) {
