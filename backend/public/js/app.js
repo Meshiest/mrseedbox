@@ -1015,7 +1015,7 @@
     $scope.sortListener = function(ev, listener) {
       var confirm = $mdDialog.confirm()
         .title('Confirm Sort')
-        .textContent('Are you certain you want to sort this listener?')
+        .textContent('Are you certain you want to sort this listener? (This will stop and remove torrents)')
         .ariaLabel('Confirm')
         .targetEvent(ev)
         .ok('Yes')
