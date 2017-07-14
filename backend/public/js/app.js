@@ -74,11 +74,53 @@ function $level(level, elem) {
   return $if(user_level >= level, elem);
 }
 
+/*
+  String - Takes a byte input and converts to a reasonable metric
+  1024 B = 1 KB
+*/
 function $bytes(bytes) {
   bytes = ~~bytes;
   if (bytes < 1024) return bytes + ' B';else if (bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + ' KB';else if (bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + ' MB';else return ~~(bytes / 1073741824).toFixed(3) + ' GB';
 }
 
+function $handleError(err) {
+  if (err && err.status === 401) location.reload();
+  console.warn(err);
+}
+
+/*
+  String - A smart timestamp function given a unix time in seconds
+*/
+function $ago(time) {
+  var now = Date.now() / 1000;
+  var delta = now - time;
+  if (!time) return 'Never';
+  if (delta < 0) return 'In The Future';
+  if (delta < 10) return 'Now';
+  if (delta < 60) return 'Moments Ago';
+  if (delta < 60 * 60) return Math.round(delta / 60) + ' Minute' + (Math.round(delta / 60) != 1 ? 's' : '') + ' Ago';
+  if (delta < 60 * 60 * 24) return Math.round(delta / 60 / 60) + ' Hour' + (Math.round(delta / 60 / 60) != 1 ? 's' : '') + ' Ago';
+  if (delta < 60 * 60 * 24 * 7) return Math.round(delta / 60 / 60 / 24) + ' Day' + (Math.round(delta / 60 / 60 / 24) != 1 ? 's' : '') + ' Ago';
+  if (delta < 60 * 60 * 24 * 30) return Math.round(delta / 60 / 60 / 24 / 7) + ' Week' + (Math.round(delta / 60 / 60 / 24 / 7) != 1 ? 's' : '') + ' Ago';
+
+  let date = new Date(time);
+  let month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  return `${date.getDate()} ${month[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+/*
+  Array - Filters out the given array with the function `fn`
+*/
+function $filter(arr, fn) {
+  let newArr = [];
+  arr.forEach(a => {
+    if (fn(a)) newArr.push(a);
+  });
+  return newArr;
+}
+
+// Core app component
 class Seedbox extends React.Component {
   constructor(props) {
     super(props);
@@ -142,6 +184,7 @@ class Home extends React.Component {
       'div',
       null,
       React.createElement(User, null),
+      React.createElement(Feeds, null),
       React.createElement(Torrents, null)
     );
   }
@@ -152,6 +195,58 @@ class User extends React.Component {
   constructor(props) {
     super(props);
 
+    let user = {
+      name: 'Friend',
+      email: 'n/a'
+    };
+
+    let welcome = this.getWelcome();
+    this.state = {
+      user,
+      welcome,
+      listeners: {},
+      subscriptions: []
+    };
+
+    this.updateListeners();
+
+    this.updateListeners = this.updateListeners.bind(this);
+
+    // get a new welcome every minute or so
+    this.welcomeInterval = setInterval(() => {
+      this.setState({ welcome: this.getWelcome() });
+      this.updateListeners();
+    }, 15 * 60 * 1000);
+
+    $.ajax({
+      url: '/api/users'
+    }).then(resp => {
+      let users = {};
+      resp.forEach(u => users[u.id] = u);
+      this.setState({ user: users[user_id] });
+    }, $handleError);
+  }
+
+  updateListeners() {
+    $.ajax({
+      url: '/api/listeners'
+    }).then(arr => {
+      let listeners = {};
+      arr.forEach(l => listeners[l.id] = l);
+      $.ajax({
+        url: '/api/user/listeners'
+      }).then(subscriptions => {
+        subscriptions = $filter(subscriptions, s => typeof s.last_seen === 'undefined' || s.last_seen < listeners[s.listener_id].last_update);
+        this.setState({ subscriptions, listeners });
+      }, $handleError);
+    }, $handleError);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.welcomeInterval);
+  }
+
+  getWelcome() {
     let welcome = 'Welcome';
     let time = new Date();
     let hours = time.getHours(),
@@ -167,23 +262,7 @@ class User extends React.Component {
 
     if (hours > 21 || hours < 5) welcome = 'Good Night';
 
-    this.state = {
-      user: {
-        name: 'Friend',
-        email: 'n/a'
-      },
-      welcome
-    };
-  }
-
-  componentDidMount() {
-    $.ajax({
-      url: '/api/users'
-    }).then(users => {
-      users.forEach(user => {
-        if (user.id === user_id) this.setState({ user });
-      });
-    });
+    return welcome;
   }
 
   render() {
@@ -220,7 +299,35 @@ class User extends React.Component {
         UI_LEVELS[user_level],
         ' #',
         user_id
-      )
+      ),
+      $if(this.state.subscriptions.length, React.createElement(
+        'div',
+        { style: {
+            alignItems: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center'
+          } },
+        React.createElement(
+          'h2',
+          { style: {
+              fontWeight: 400,
+              marginBottom: '8px',
+              marginTop: '16px'
+            } },
+          'You Have New Updates'
+        ),
+        this.state.subscriptions.map(s => React.createElement(
+          Chip,
+          { icon: 'visibility', key: s.listener_id, onClick: e => {
+              let time = Math.floor(Date.now() / 1000);
+              $.ajax({
+                url: `/api/user/listeners/${s.listener_id}?time=${time}`,
+                method: 'PUT' }).then(this.updateListeners, $handleError);
+            } },
+          this.state.listeners[s.listener_id].name
+        ))
+      ))
     );
   }
 }
@@ -242,7 +349,7 @@ class Torrents extends React.Component {
   }
 
   componentDidMount() {
-    this.getTorrents(true);
+    this.getTorrents();
   }
 
   getProgress(torrent) {
@@ -277,10 +384,10 @@ class Torrents extends React.Component {
         });
       });
       this.setState({ torrents });
-      this.updateTimeout = setTimeout(() => this.getTorrents(true), 1000);
+      this.updateTimeout = setTimeout(() => this.getTorrents(), 5000);
     }, error => {
-      this.setState({ error });
-      this.updateTimeout = setTimeout(() => this.getTorrents(true), 10000);
+      $handleError(error);
+      this.updateTimeout = setTimeout(() => this.getTorrents(), 300000);
     });
   }
 
@@ -307,10 +414,10 @@ class Torrents extends React.Component {
               method: 'post',
               url: '/api/torrents?url=' + result
             }).then(resp => {
-              console.log(resp);
               this.getTorrents();
-            }, err => console.warn(err));
-          } }))
+            }, $handleError);
+          } })),
+        React.createElement(IconButton, { icon: 'refresh', onClick: this.getTorrents })
       ),
       this.state.torrents.length ? React.createElement(
         'div',
@@ -407,46 +514,17 @@ class Torrent extends React.Component {
         React.createElement(
           'td',
           { colSpan: '4' },
-          $level(PERMISSIONS.EDIT_TORRENT, React.createElement(
-            'div',
-            { style: {
-                display: 'flex',
-                backgroundColor: tintColor,
-                borderBottom: 'thin solid ' + bgColor
-              } },
-            React.createElement(
-              HeaderRow,
-              null,
-              React.createElement(IconButton, { icon: torrent.status == 'stopped' ? 'play_arrow' : 'pause', onClick: e => $.ajax({
-                  method: 'post',
-                  url: `/api/torrents/${torrent.info_hash}/${torrent.status == 'stopped' ? 'start' : 'stop'}`
-                }).then(this.props.getTorrents, err => console.warn(err)) })
-            ),
-            React.createElement(
-              HeaderRow,
-              { flex: true },
-              'Created ',
-              torrent.creationDate
-            ),
-            React.createElement(
-              HeaderRow,
-              null,
-              React.createElement(IconButton, { icon: 'delete', onClick: e => confirm("Are you sure you want to delete " + torrent.name) && $.ajax({
-                  method: 'post',
-                  url: `/api/torrents/${torrent.info_hash}/delete`
-                }).then(this.props.getTorrents, err => console.warn(err)) })
-            )
-          )),
           torrent.files.map(file => {
             let ratio = file.completedChunks / file.totalChunks;
             let link = encodeURI(file.path).replace(/&/g, '%26').replace(/;/g, '%3B');
             return React.createElement(
               'div',
-              { style: {
+              { key: file.name, style: {
                   alignItems: 'center',
                   display: 'flex',
                   padding: '4px',
-                  paddingLeft: '20px'
+                  paddingLeft: '16px',
+                  paddingRight: '16px'
                 } },
               React.createElement(
                 'a',
@@ -461,7 +539,11 @@ class Torrent extends React.Component {
                     flex: '1',
                     paddingLeft: '8px'
                   } },
-                file.name
+                React.createElement(
+                  Overflow,
+                  null,
+                  file.name
+                )
               ),
               React.createElement(
                 'span',
@@ -472,6 +554,112 @@ class Torrent extends React.Component {
           })
         )
       ))
+    );
+  }
+}
+
+// List of Feeds
+class Feeds extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      feeds: []
+    };
+
+    this.getFeeds = this.getFeeds.bind(this);
+  }
+
+  componentDidMount() {
+    this.getFeeds();
+  }
+
+  getFeeds() {
+    clearTimeout(this.updateTimeout);
+
+    $.ajax({ url: '/api/feeds' }).then(feeds => {
+      this.setState({ feeds });
+      this.updateTimeout = setTimeout(() => this.getFeeds(), 60 * 1000);
+    }, error => {
+      $handleError(error);
+      this.updateTimeout = setTimeout(() => this.getFeeds(), 60 * 1000);
+    });
+  }
+
+  render() {
+    return React.createElement(
+      Card,
+      null,
+      React.createElement(
+        CardHeader,
+        { title: 'Feeds' },
+        $level(PERMISSIONS.EDIT_FEED, React.createElement(IconButton, { icon: 'add' })),
+        React.createElement(IconButton, { icon: 'refresh', onClick: this.getFeeds })
+      ),
+      React.createElement(
+        'div',
+        { style: { paddingBottom: '16px' } },
+        this.state.feeds.map(f => React.createElement(Feed, { feed: f }))
+      )
+    );
+  }
+}
+
+// Feed in the list of feeds
+class Feed extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {};
+  }
+
+  render() {
+    let { feed } = this.props;
+
+    return React.createElement(
+      'div',
+      { style: {
+          borderLeft: 'solid 2px ' + primaryBgColor,
+          marginLeft: '16px',
+          marginTop: '16px',
+          padding: '8px'
+        } },
+      React.createElement(
+        'div',
+        { style: { display: 'flex' } },
+        React.createElement(
+          'div',
+          { style: { flex: '1' } },
+          React.createElement(
+            'h2',
+            { style: {
+                fontWeight: '400'
+              } },
+            feed.name,
+            React.createElement(
+              'span',
+              { style: { fontSize: '14px' } },
+              '\xA0by ',
+              feed.creator_name
+            )
+          ),
+          React.createElement(
+            'subhead',
+            { style: { color: subheaderColor, fontSize: '12px' } },
+            React.createElement(
+              Overflow,
+              null,
+              feed.uri
+            )
+          )
+        ),
+        $level(PERMISSIONS.EDIT_FEED, React.createElement(
+          'div',
+          { style: { display: 'flex' } },
+          React.createElement(IconButton, { icon: 'create' }),
+          React.createElement(IconButton, { icon: 'delete' })
+        ))
+      )
     );
   }
 }
@@ -547,14 +735,37 @@ let Icon = props => React.createElement(
     /> 
 */
 let IconButton = props => React.createElement(
-  'button',
-  {
-    onClick: props.onClick,
-    type: $hasProp(props, 'submit') ? 'submit' : null,
-    className: $hasProp(props, 'primary') ? 'primary' : '' },
+  'div',
+  { style: { alignItems: 'center', display: 'flex' } },
+  React.createElement(
+    'button',
+    {
+      onClick: props.onClick,
+      type: $hasProp(props, 'submit') ? 'submit' : null,
+      className: $hasProp(props, 'primary') ? 'primary' : '' },
+    React.createElement(
+      Icon,
+      null,
+      props.icon
+    )
+  )
+);
+
+let Chip = props => React.createElement(
+  'div',
+  { className: 'chip', onClick: props.onClick, style: {
+      alignItems: 'center',
+      cursor: 'pointer',
+      display: 'flex',
+      height: '32px',
+      borderRadius: '16px',
+      paddingLeft: '8px',
+      paddingRight: '8px'
+    } },
+  props.children,
   React.createElement(
     Icon,
-    null,
+    { style: { marginLeft: '4px' } },
     props.icon
   )
 );
@@ -737,6 +948,46 @@ let Td = props => React.createElement(
         transition: 'margin-left 1s ease',
         top: $hasProp(props, 'expand') ? '4px' : '0',
         position: $hasProp(props, 'expand') ? 'absolute' : 'relative'
+      }, onMouseOver: e => {
+        let width = $(e.target).width();
+        let maxWidth = $(e.target).parent().width();
+        if (width <= maxWidth) return;
+        $(e.target).css({
+          marginLeft: '-' + (width - maxWidth) + 'px'
+        });
+      }, onMouseLeave: e => {
+        $(e.target).css({
+          marginLeft: '0px'
+        });
+      } },
+    props.children
+  )
+);
+
+/*
+  Overflow autos hides text that overflows
+    when a user hovers over the text, it shows the rest
+
+  <Overflow
+    height="10px">   // height of component
+    ...              // content to overflow
+  </Overflow>
+*/
+let Overflow = props => React.createElement(
+  'span',
+  { style: {
+      display: 'flex',
+      height: props.height || '20px',
+      overflow: 'hidden',
+      position: 'relative',
+      textOverflow: 'elipsis',
+      whiteSpace: 'nowrap'
+    } },
+  React.createElement(
+    'span',
+    { style: {
+        transition: 'margin-left 1s ease',
+        position: 'absolute'
       }, onMouseOver: e => {
         let width = $(e.target).width();
         let maxWidth = $(e.target).parent().width();

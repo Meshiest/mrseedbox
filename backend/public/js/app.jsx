@@ -74,6 +74,10 @@ function $level(level, elem) {
   return $if(user_level >= level, elem);
 }
 
+/*
+  String - Takes a byte input and converts to a reasonable metric
+  1024 B = 1 KB
+*/
 function $bytes(bytes) {
   bytes = ~~bytes;
   if(bytes < 1024) return bytes + ' B';
@@ -82,6 +86,58 @@ function $bytes(bytes) {
   else return ~~(bytes / 1073741824).toFixed(3) + ' GB';
 }
 
+function $handleError(err) {
+  if(err && err.status === 401)
+    location.reload();
+  console.warn(err);
+}
+
+/*
+  String - A smart timestamp function given a unix time in seconds
+*/
+function $ago(time) {
+  var now = Date.now()/1000;
+  var delta = now-time;
+  if(!time)
+    return 'Never';
+  if(delta < 0)
+    return 'In The Future';
+  if(delta < 10)
+    return 'Now';
+  if(delta < 60)
+    return 'Moments Ago';
+  if(delta < 60 * 60)
+    return Math.round(delta/60) + ' Minute' + (Math.round(delta/60)!=1?'s':'') + ' Ago';
+  if(delta < 60 * 60 * 24)
+    return Math.round(delta/60/60) + ' Hour' + (Math.round(delta/60/60)!=1?'s':'') + ' Ago';
+  if(delta < 60 * 60 * 24 * 7)
+    return Math.round(delta/60/60/24) + ' Day' + (Math.round(delta/60/60/24)!=1?'s':'') + ' Ago';
+  if(delta < 60 * 60 * 24 * 30)
+    return Math.round(delta/60/60/24/7) + ' Week' + (Math.round(delta/60/60/24/7)!=1?'s':'') + ' Ago';
+
+  let date = new Date(time);
+  let month = [
+    'January', 'February', 'March', 'April', 'May',
+    'June', 'July', 'August', 'September', 'October',
+    'November', 'December'
+  ];
+
+  return `${date.getDate()} ${month[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+/*
+  Array - Filters out the given array with the function `fn`
+*/
+function $filter(arr, fn) {
+  let newArr = [];
+  arr.forEach(a => {
+    if(fn(a))
+      newArr.push(a)
+  });
+  return newArr;
+}
+
+// Core app component
 class Seedbox extends React.Component {
   constructor(props) {
     super(props);
@@ -144,6 +200,7 @@ class Home extends React.Component {
     return (
       <div>
         <User/>
+        <Feeds/>
         <Torrents/>
       </div>
     );
@@ -155,6 +212,60 @@ class User extends React.Component {
   constructor(props) {
     super(props);
 
+    let user = {
+      name: 'Friend',
+      email: 'n/a',
+    };
+    
+    let welcome = this.getWelcome();
+    this.state = {
+      user,
+      welcome, 
+      listeners: {},
+      subscriptions: [],
+    };
+
+    this.updateListeners();
+
+    this.updateListeners = this.updateListeners.bind(this);
+
+    // get a new welcome every minute or so
+    this.welcomeInterval = setInterval(() => {
+      this.setState({welcome: this.getWelcome()});
+      this.updateListeners();
+    }, 15 * 60 * 1000);
+
+    $.ajax({
+      url: '/api/users'
+    }).then(resp => {
+      let users = {};
+      resp.forEach(u => users[u.id] = u);
+      this.setState({user: users[user_id]});
+    }, $handleError);
+
+  }
+
+  updateListeners() {
+    $.ajax({
+      url: '/api/listeners'
+    }).then(arr => {
+      let listeners = {};
+      arr.forEach(l => listeners[l.id] = l);
+      $.ajax({
+        url: '/api/user/listeners'
+      }).then(subscriptions => {
+        subscriptions = $filter(subscriptions, s =>
+          typeof s.last_seen === 'undefined' || s.last_seen < listeners[s.listener_id].last_update);
+        this.setState({ subscriptions, listeners });
+      }, $handleError);
+    }, $handleError);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.welcomeInterval);
+  }
+
+  getWelcome() {
     let welcome = 'Welcome';
     let time = new Date();
     let hours = time.getHours(), mins = time.getMinutes();
@@ -176,25 +287,8 @@ class User extends React.Component {
 
     if(hours > 21 || hours < 5)
       welcome = 'Good Night';
-
-    this.state = {
-      user: {
-        name: 'Friend',
-        email: 'n/a',
-      },
-      welcome
-    };
-  }
-
-  componentDidMount() {
-    $.ajax({
-      url: '/api/users'
-    }).then(users => {
-      users.forEach(user => {
-        if(user.id === user_id)
-          this.setState({user});
-      })
-    });
+    
+    return welcome;
   }
 
   render() {
@@ -221,6 +315,32 @@ class User extends React.Component {
         <sup style={{fontSize: '12px', marginBottom: '8px'}}>
           {UI_LEVELS[user_level]} #{user_id}
         </sup>
+        {$if(this.state.subscriptions.length, 
+          <div style={{
+            alignItems: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}>
+            <h2 style={{
+              fontWeight: 400,
+              marginBottom: '8px',
+              marginTop: '16px',
+            }}>
+              You Have New Updates
+            </h2>
+            {this.state.subscriptions.map(s => 
+              <Chip icon="visibility" key={s.listener_id} onClick={e => {
+                  let time = Math.floor(Date.now()/1000);
+                  $.ajax({
+                    url: `/api/user/listeners/${s.listener_id}?time=${time}`,
+                    method: 'PUT'}).then(this.updateListeners, $handleError);
+                }}>
+                {this.state.listeners[s.listener_id].name}
+              </Chip>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -243,7 +363,7 @@ class Torrents extends React.Component {
   }
 
   componentDidMount() {
-    this.getTorrents(true);
+    this.getTorrents();
   }
 
   getProgress(torrent) {
@@ -281,11 +401,11 @@ class Torrents extends React.Component {
           });
         });
         this.setState({torrents});
-        this.updateTimeout = setTimeout(() => this.getTorrents(true), 1000);
+        this.updateTimeout = setTimeout(() => this.getTorrents(), 5000);
       },
       error => {
-        this.setState({error})
-        this.updateTimeout = setTimeout(() => this.getTorrents(true), 10000);
+        $handleError(error);
+        this.updateTimeout = setTimeout(() => this.getTorrents(), 300000);
       }
     );
   }
@@ -318,13 +438,13 @@ class Torrents extends React.Component {
                   url: '/api/torrents?url=' + result
                 }).then(
                   resp => {
-                    console.log(resp)
                     this.getTorrents();
                   },
-                  err => console.warn(err)
+                  $handleError
                 )
               }}/>
           )}
+          <IconButton icon="refresh" onClick={this.getTorrents}/>
         </CardHeader>
         {this.state.torrents.length ? <div style={{overflow: 'auto'}}>
           <table style={{
@@ -407,50 +527,17 @@ class Torrent extends React.Component {
         {$if(this.state.expand,
           <tr>
             <td colSpan="4">
-              {$level(PERMISSIONS.EDIT_TORRENT,
-                <div style={{
-                    display: 'flex',
-                    backgroundColor: tintColor,
-                    borderBottom: 'thin solid ' + bgColor,
-                  }}>
-                  <HeaderRow>
-                    <IconButton icon={torrent.status == 'stopped' ? 'play_arrow' : 'pause'} onClick={e =>
-                      $.ajax({
-                        method: 'post',
-                        url: `/api/torrents/${torrent.info_hash}/${torrent.status == 'stopped' ? 'start' : 'stop'}`
-                      }).then(
-                        this.props.getTorrents,
-                        err => console.warn(err)
-                      )
-                    }/>
-                  </HeaderRow>
-                  <HeaderRow flex>
-                    Created {torrent.creationDate}
-                  </HeaderRow>
-                  <HeaderRow>
-                    <IconButton icon="delete" onClick={e =>
-                      confirm("Are you sure you want to delete " + torrent.name) && $.ajax({
-                        method: 'post',
-                        url: `/api/torrents/${torrent.info_hash}/delete`
-                      }).then(
-                        this.props.getTorrents,
-                        err => console.warn(err)
-                      )
-                    }/>
-                  </HeaderRow>
-                </div>
-              )}
-
               {torrent.files.map(file => {
                 let ratio = file.completedChunks / file.totalChunks;
                 let link = encodeURI(file.path)
                   .replace(/&/g, '%26')
                   .replace(/;/g, '%3B');
-                return <div style={{
+                return <div key={file.name} style={{
                     alignItems: 'center',
                     display: 'flex',
                     padding: '4px',
-                    paddingLeft: '20px',
+                    paddingLeft: '16px',
+                    paddingRight: '16px',
                   }}>
                   <a href={'/api/dl?file=' + link}
                       style={{textDecoration: 'none'}}
@@ -461,7 +548,7 @@ class Torrent extends React.Component {
                       flex: '1',
                       paddingLeft: '8px'
                     }}>
-                      {file.name}
+                      <Overflow>{file.name}</Overflow>
                   </span>
                   <span>{$bytes(file.size * ratio)}</span>
                 </div>;
@@ -470,6 +557,103 @@ class Torrent extends React.Component {
           </tr>
         )}
       </tbody>
+    );
+  }
+}
+
+// List of Feeds
+class Feeds extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      feeds: [],
+    };
+
+    this.getFeeds = this.getFeeds.bind(this);
+  }
+
+  componentDidMount() {
+    this.getFeeds();
+  }
+
+  getFeeds() {
+    clearTimeout(this.updateTimeout);
+
+    $.ajax({url: '/api/feeds'})
+    .then(
+      feeds => {
+        this.setState({feeds});
+        this.updateTimeout = setTimeout(() => this.getFeeds(), 60 * 1000);
+      },
+      error => {
+        $handleError(error);
+        this.updateTimeout = setTimeout(() => this.getFeeds(), 60 * 1000);
+      }
+    );
+  }
+
+  render() {
+    return (
+      <Card>
+        <CardHeader title="Feeds">
+          {$level(PERMISSIONS.EDIT_FEED,
+            <IconButton icon="add"/>
+          )}
+          <IconButton icon="refresh" onClick={this.getFeeds}/>
+        </CardHeader>
+        <div style={{paddingBottom: '16px'}}>
+          {this.state.feeds.map(f =>
+            <Feed feed={f}/>)}
+        </div>
+      </Card>
+    );
+  }
+}
+
+// Feed in the list of feeds
+class Feed extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+
+    };
+  }
+
+  render() {
+    let { feed } = this.props;
+
+    return (
+      <div style={{
+          borderLeft: 'solid 2px ' + primaryBgColor,
+          marginLeft: '16px',
+          marginTop: '16px',
+          padding: '8px',
+        }}>
+        <div style={{display: 'flex'}}>
+          <div style={{flex: '1'}}>
+            <h2 style={{
+                fontWeight: '400',
+              }}>
+              {feed.name}
+              <span style={{fontSize: '14px'}}>
+                &nbsp;by {feed.creator_name}
+              </span>
+            </h2>
+            <subhead style={{color: subheaderColor, fontSize: '12px'}}>
+              <Overflow>{feed.uri}</Overflow>
+            </subhead>
+          </div>
+          {$level(PERMISSIONS.EDIT_FEED,
+            <div style={{display: 'flex'}}>
+              <IconButton icon="create"/>
+              <IconButton icon="delete"/>
+            </div>
+          )}
+        </div>
+
+      </div>
     );
   }
 }
@@ -549,13 +733,30 @@ let Icon = props => (
     /> 
 */
 let IconButton = props => (
-  <button
-    onClick={props.onClick}
-    type={$hasProp(props, 'submit') ? 'submit' : null}
-    className={$hasProp(props, 'primary') ? 'primary' : ''}>
-    <Icon>{props.icon}</Icon>
-  </button>
+  <div style={{alignItems: 'center', display: 'flex'}}>
+    <button
+      onClick={props.onClick}
+      type={$hasProp(props, 'submit') ? 'submit' : null}
+      className={$hasProp(props, 'primary') ? 'primary' : ''}>
+      <Icon>{props.icon}</Icon>
+    </button>
+  </div>
 );
+
+let Chip = props => (
+  <div className="chip" onClick={props.onClick} style={{
+      alignItems: 'center',
+      cursor: 'pointer',
+      display: 'flex',
+      height: '32px',
+      borderRadius: '16px',
+      paddingLeft: '8px',
+      paddingRight: '8px',
+    }}>
+    {props.children}
+    <Icon style={{marginLeft: '4px'}}>{props.icon}</Icon>
+  </div>
+)
 
 /*
   Used as a button that opens an input
@@ -746,6 +947,43 @@ let Td = props => (
       })
     }}>{props.children}</span>
   </td>
+);
+
+/*
+  Overflow autos hides text that overflows
+    when a user hovers over the text, it shows the rest
+
+  <Overflow
+    height="10px">   // height of component
+    ...              // content to overflow
+  </Overflow>
+*/
+let Overflow = props => (
+  <span style={{
+    display: 'flex',
+    height: props.height || '20px',
+    overflow: 'hidden',
+    position: 'relative',
+    textOverflow: 'elipsis',
+    whiteSpace: 'nowrap',
+  }}>
+    <span style={{
+      transition: 'margin-left 1s ease',
+      position: 'absolute',
+    }} onMouseOver={e => {
+      let width = $(e.target).width();
+      let maxWidth = $(e.target).parent().width();
+      if(width <= maxWidth)
+        return;
+      $(e.target).css({
+        marginLeft: '-'+(width-maxWidth)+'px',
+      })
+    }} onMouseLeave={e => {
+      $(e.target).css({
+        marginLeft: '0px',
+      })
+    }}>{props.children}</span>
+  </span>
 );
 
 /*

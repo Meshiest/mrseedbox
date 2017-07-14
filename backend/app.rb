@@ -103,7 +103,7 @@ def mysql
   return $mysqlPool[$currMysql]
 end
 
-5.times {
+50.times {
   $mysqlPool << Mysql2::Client.new(MYSQL_CONFIG)
 }
 
@@ -687,7 +687,7 @@ class Server < Sinatra::Base
         end
       when "stop"
         begin
-          Retort::Torrent.action(:start, info_hash)
+          Retort::Torrent.action(:stop, info_hash)
           status 200
           {
             status: 200,
