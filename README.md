@@ -54,8 +54,14 @@
 
 ### Things You Need
 * You need docker
+* NPM/node
 
 ### Updating the Backend (this is all in the `backend` directory)
 1. Make your changes
 2. `docker build .`
 3. `./start` from the parent directory and `docker logs -f mrseedbox_backend_1` and check if there were any problems starting the container
+
+### Updating the frontend
+1. Change app.jsx
+2. `npm install --only=dev` in backend/public/js
+3. `npm test`

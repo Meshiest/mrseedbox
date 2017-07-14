@@ -1,0 +1,16 @@
+{
+  "name": "mrseedbox-js",
+  "version": "1.0.0",
+  "description": "JavaScripts for MrSeedbox",
+  "main": "app.jsx",
+  "dependencies": {},
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-preset-react": "^6.24.1"
+  },
+  "scripts": {
+    "test": "node_modules/.bin/babel -w app.jsx -o app.js"
+  },
+  "author": "Meshiest",
+  "license": "ISC"
+}

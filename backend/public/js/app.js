@@ -1,1069 +1,581 @@
-(function(){
-  
-  var app = angular.module('SeedboxApp', ['ngMaterial','ngRoute','ngMessages']);
+const { HashRouter, Route, Switch } = ReactRouterDOM;
 
-  app.config(function ($routeProvider, $mdThemingProvider) {
-    $mdThemingProvider.theme('default')
-      .primaryPalette('teal', {
-        default: '500',
-        "hue-1": '50'
-      })
-      .accentPalette('red');
+const teal500 = '#00897B';
+const blue100 = '#BBDEFB';
+const accentColor = '#039BE5';
+const green100 = '#C8E6C9';
+const primaryFgColor = '#ffffff';
+const cardBg = '#ffffff';
+const bgColor = '#eeeeee';
+const subheaderColor = '#555555';
 
+const OWNER_LEVEL = 3;
+const EDITOR_LEVEL = 2;
+const MEMBER_LEVEL = 1;
+const VISITOR_LEVEL = 0;
+const PERMISSIONS = {
+  EDIT_USER: 3,
+  READ_USER: 1,
+  EDIT_FEED: 2,
+  READ_FEED: 0,
+  EDIT_LISTENER: 1,
+  READ_LISTENER: 0,
+  EDIT_TORRENT: 1,
+  READ_TORRENT: 0,
+  EDIT_SUBSCRIPTION: 0,
+  READ_SUBSCRIPTION: 0,
+  OWNER_LEVEL: 3,
+  EDITOR_LEVEL: 2,
+  MEMBER_LEVEL: 1,
+  VISITOR_LEVEL: 0
+};
 
-    $mdThemingProvider.theme('input', 'default')
-      .primaryPalette('grey');
+function $hasProp(props, key) {
+  return Object.keys(props).includes(key);
+}
 
-    $mdThemingProvider.alwaysWatchTheme(true);
+function $to(path) {
+  return () => location.hash = '#/' + path;
+}
 
-    $mdThemingProvider.theme('status_').
-    primaryPalette('red', {
-      'default': '500'
-    }).accentPalette('grey', { 'default': '900' });
+function $if(condition, onTrue) {
+  return condition ? onTrue : null;
+}
 
-    $mdThemingProvider.theme('status_stopped').
-    primaryPalette('grey', {
-      'default': '600'
-    }).accentPalette('grey', { 'default': '900' });
+function $level(level, elem) {
+  return $if(user_level >= level, elem);
+}
 
-    $mdThemingProvider.theme('status_checkQueue').
-    primaryPalette('purple', {
-      'default': '500'
-    }).accentPalette('grey', { 'default': '900' });
+function $bytes(bytes) {
+  bytes = ~~bytes;
+  if (bytes < 1024) return bytes + " B";else if (bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + " KB";else if (bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + " MB";else return ~~(bytes / 1073741824).toFixed(3) + " GB";
+}
 
-    $mdThemingProvider.theme('status_checkFiles').
-    primaryPalette('yellow', {
-      'default': '500'
-    }).accentPalette('grey', { 'default': '900' });
+class Seedbox extends React.Component {
+  constructor(props) {
+    super(props);
+  }
 
-    $mdThemingProvider.theme('status_downloadQueue').
-    primaryPalette('blue', {
-      'default': '500'
-    }).accentPalette('grey', { 'default': '900' });
+  render() {
+    return React.createElement(
+      'div',
+      { className: 'mrseedbox',
+        style: {
+          backgroundColor: bgColor,
+          display: 'flex',
+          flexDirection: 'column'
+        } },
+      React.createElement(Toolbar, null),
+      React.createElement(
+        HashRouter,
+        null,
+        React.createElement(
+          Switch,
+          null,
+          React.createElement(Route, { exact: true, path: '/', component: Home }),
+          $level(PERMISSIONS.READ_TORRENT, React.createElement(Route, { exact: true, path: '/emby', component: Emby })),
+          $level(EDITOR_LEVEL, React.createElement(Route, { exact: true, path: '/rutorrent', component: RuTorrent }))
+        )
+      )
+    );
+  }
+};
 
-    $mdThemingProvider.theme('status_downloading').
-    primaryPalette('blue', {
-      'default': '900'
-    }).accentPalette('grey', { 'default': '900' });
+class Home extends React.Component {
+  constructor(props) {
+    super(props);
+  }
 
-    $mdThemingProvider.theme('status_seedQueue').
-    primaryPalette('green', {
-      'default': '600'
-    }).accentPalette('grey', { 'default': '900' });
+  render() {
+    return React.createElement(
+      'div',
+      null,
+      React.createElement(Torrents, null)
+    );
+  }
+}
 
-    $mdThemingProvider.theme('status_seeding').
-    primaryPalette('green', {
-      'default': '900'
-    }).accentPalette('grey', { 'default': '900' });
+class Torrents extends React.Component {
+  constructor(props) {
+    super(props);
 
-    $mdThemingProvider.theme('status_islated').
-    primaryPalette('red', {
-      'default': '500'
-    }).accentPalette('grey', { 'default': '900' });
-
-
-
-    $routeProvider.
-    when('/', {
-      redirectTo: '/torrents'
-    }).
-    when('/home', {
-      controller: 'HomeCtrl',
-      templateUrl: 'views/home.html'
-    }).
-    when('/torrents', {
-      controller: 'TorrentCtrl',
-      templateUrl: 'views/torrents.html'
-    }).
-    when('/rutorrent', {
-      controller: 'FrameCtrl',
-      templateUrl: 'views/rutorrent.html'
-    }).
-    when('/emby', {
-      controller: 'FrameCtrl',
-      templateUrl: 'views/emby.html'
-    }).
-    when('/subscriptions', {
-      controller: 'SubscriptionCtrl',
-      templateUrl: 'views/subscriptions.html'
-    }).
-    when('/users', {
-      controller: 'UserCtrl',
-      templateUrl: 'views/users.html'
-    }).
-    when('/feeds', {
-      controller: 'FeedCtrl',
-      templateUrl: 'views/feeds.html'
-    }).
-    when('/404', {
-      controller: 'HomeCtrl',
-      templateUrl: 'views/notfound.html'
-    }).
-    otherwise({
-      redirectTo: '/404'
-    });
-  });
-
-  app.controller('AppCtrl', function($scope, $mdMedia, $location, $mdSidenav, $http) {
-    $scope.http = $http;
-    
-    $scope.setPath = function (path) {
-      $location.path(path);
+    this.state = {
+      torrents: [],
+      order: 'progress',
+      reverse: true
     };
 
-    $scope.toggleSideNav = function (menuId) {
-      $mdSidenav(menuId).toggle();
-    };
+    this.getTorrents = this.getTorrents.bind(this);
+    this.reorder = this.reorder.bind(this);
+    this.order = this.order.bind(this);
+  }
 
-    var PERMISSIONS = $scope.PERMISSIONS = {
-      EDIT_USER:         3,
-      READ_USER:         1,
-      EDIT_FEED:         2,
-      READ_FEED:         0,
-      EDIT_LISTENER:     1,
-      READ_LISTENER:     0,
-      EDIT_TORRENT:      1,
-      READ_TORRENT:      0,
-      EDIT_SUBSCRIPTION: 0,
-      READ_SUBSCRIPTION: 0,
-      OWNER_LEVEL:       3,
-      EDITOR_LEVEL:      2,
-      MEMBER_LEVEL:      1,
-      VISITOR_LEVEL:     0,
-    };
+  componentDidMount() {
+    this.getTorrents(true);
+  }
 
-    $scope.levels = {
-      3: "Owner",
-      2: "Editor",
-      1: "Member",
-      0: "Visitor",
-    };
-
-    $scope.menu = [{
-      title: 'Chat',
-      icon: 'chat',
-      path: '/home',
-      perm: 0,
-    }, {
-      title: 'Torrents',
-      icon: 'file_download',
-      path: '/torrents',
-      perm: PERMISSIONS.READ_TORRENT,
-    }, {
-      title: 'RuTorrent',
-      icon: 'library_books',
-      path: '/rutorrent',
-      perm: PERMISSIONS.EDITOR_LEVEL,
-    }, {
-      title: 'Emby',
-      icon: 'video_library',
-      path: '/emby',
-      perm: PERMISSIONS.READ_TORRENT,
-    }, {
-      title: 'Feeds',
-      icon: 'rss_feed',
-      path: '/feeds',
-      perm: PERMISSIONS.READ_FEED,
-    }, {
-      title: 'Subscriptions',
-      icon: 'star_rate',
-      path: '/subscriptions',
-      perm: PERMISSIONS.READ_SUBSCRIPTION,
-    }, {
-      title: 'Users',
-      icon: 'person',
-      path: '/users',
-      perm: PERMISSIONS.READ_USER,
-    }];
-
-    $scope.title = 'Mr. Seedbox';
-
-    $scope.level = window.user_level;
-    $scope.id = window.user_id;
-
-    $scope.messages = [];
-  });
-
-  app.controller('HomeCtrl', function($scope, $timeout, $http) {
-    $scope.messages = [];
-    $scope.lastUpdate = 0;
-
-    var updateInterval;
-
-    $scope.message = '';
-    $scope.pending = false;
-    $scope.sendMessage = function() {
-      if($scope.message.length < 1 || $scope.message.length > 256)
-        return ;
-      $scope.pending = true;
-      var message = encodeURI($scope.message)
-        .replace(/&/g, '%26')
-        .replace(/;/g, '%3B');
-      $http({url:'api/messages',method:'POST',params:{msg: message}}).
-      success(function() {
-        $scope.pending = false;
-        $scope.message = '';
-        update();
-      }).error(function(err) {
-        $scope.pending = false;
-
-        $mdToast.show(
-          $mdToast.simple()
-            .textContent('Error Sending Message: ',err.message)
-            .position('bottom left')
-            .hideDelay(3000)
-        );
-      });
-    };
-
-    var update = function () {
-      $timeout.cancel(updateInterval);
-
-      $http.get('api/messages').success(function(messages){
-        messages = messages.reverse();
-        for(var i in messages) {
-          var msg = messages[i];
-          msg.message = decodeURIComponent(msg.message);
-          if(msg.time > $scope.lastUpdate) {
-            $scope.lastUpdate = msg.time;
-            $scope.messages.push(msg);
-          }
-        }
-
-        updateInterval = $timeout(update, 2000);
-      }).error(function(err){
-        if(err.status == 401)
-          location.href='/logout';
-        updateInterval = $timeout(update, 5000);
-      });
-
-    };
-
-    update();
-
-    $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval);
-    });
-  });
-
-  app.controller('TorrentCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
-
-    $scope.torrents = [];
-    $scope.search = '';
-    $scope.extendLimit = 0;
-
-    $scope.getOrder = function () {
-      return $scope.search.length ? "name" : "date";
-    };
-
-    $scope.increaseLimit = function() {
-      $scope.extendLimit += 10;
-    };
-
-    $scope.getLimit = function() {
-      return ($scope.search.length ? 30 : 10) + $scope.extendLimit;
-    };
-
-    $scope.toggleTorrent = function(torrent) {
-      torrent.toggle = !torrent.toggle;
-    };
-    var updateInterval;
-
-    function sanitizeNames(files) {
-      for(var i = 0; i < files.length; i++) {
-        files[i].link = encodeURI(files[i].path)
-          .replace(/&/g, '%26')
-          .replace(/;/g, '%3B');
-      }
-      return files;
+  getProgress(torrent) {
+    var total = 0;
+    var progress = 0;
+    for (var i in torrent.files) {
+      var totalChunks = torrent.files[i].totalChunks;
+      var completedChunks = torrent.files[i].completedChunks;
+      total += totalChunks;
+      progress += completedChunks;
+      torrent.files[i].progress = completedChunks / totalChunks;
     }
+    return progress / total * 100;
+  }
 
-    var update = function () {
-      $timeout.cancel(updateInterval);
+  componentWillUnmount() {
+    clearTimeout(this.updateTimeout);
+  }
 
-      $http.get('api/torrents').success(function(torrents){
-        var map = {};
-        var torrent;
-        for(var i in $scope.torrents) {
-          torrent = $scope.torrents[i];
-          torrent.delete_flag = true;
-          map[torrent.info_hash] = torrent;
-        }
-        for(var j in torrents) {
-          torrent = torrents[j];
-          torrent.progress = $scope.getProgress(torrent);
-          torrent.files = sanitizeNames(torrent.files);
-          var date = torrent.creationDate;
-          torrent.date = new Date(date.substr(3,2)+"/"+date.substr(0,2)+"/"+date.substr(6,4)).getTime();
-          var exist = map[torrent.info_hash];
-          if(exist) {
-            exist.name = torrent.name;
-            exist.size = torrent.size;
-            exist.ratio = torrent.ratio;
-            exist.state = torrent.state;
-            exist.status = torrent.status;
-            exist.progress = torrent.progress;
-            exist.completed = torrent.completed;
-            exist.date = torrent.date;
-            exist.files = torrent.files;
-            delete exist.delete_flag;
-          } else {
-            $scope.torrents.push(torrent);
-          }
-        }
-        for(var k = 0; k < $scope.torrents.length; k++) {
-          torrent = $scope.torrents[k];
-          if(torrent.delete_flag) {
-            $scope.torrents.splice(k--, 1);
-          }
-        }
-        updateInterval = $timeout(update, 5000);
-      }).error(function(err){
-        if(err.status == 401)
-          location.href='/logout';
-        updateInterval = $timeout(update, 10000);
-      });
+  getTorrents(again) {
+    clearTimeout(this.updateTimeout);
 
-    };
-
-    update();
-
-    $scope.startTorrent = function(torrent) {
-      $http({url: "api/torrents/"+torrent.info_hash+"/start", method: "POST"}).success(function(){
-        $mdToast.show(
-          $mdToast.simple()
-            .textContent('Starting Torrent')
-            .position('bottom left')
-            .hideDelay(3000)
-        );
-        update();
-      }).error(function(err) {
-        if(err.status == 401)
-          location.href='/logout';
-
-        $mdToast.show(
-          $mdToast.simple()
-            .textContent('Error Starting Torrent: ',err.message)
-            .position('bottom left')
-            .hideDelay(3000)
-        );
-      });
-    };
-    
-    $scope.stopTorrent = function(torrent) {
-      $http({url: "api/torrents/"+torrent.info_hash+"/stop", method: "POST"}).success(function(){
-        $mdToast.show(
-          $mdToast.simple()
-            .textContent('Stopping Torrent')
-            .position('bottom left')
-            .hideDelay(3000)
-        );
-        update();
-      }).error(function(err) {
-        if(err.status == 401)
-          location.href='/logout';
-
-        $mdToast.show(
-          $mdToast.simple()
-            .textContent('Error Stopping Torrent: ',err.message)
-            .position('bottom left')
-            .hideDelay(3000)
-        );
-      });
-    };
-
-    $scope.removeTorrent = function(ev, torrent) {
-
-      var confirm = $mdDialog.confirm()
-        .title('Confirm Removal')
-        .textContent('Are you certain you want to remove this torrent?')
-        .ariaLabel('Confirm')
-        .targetEvent(ev)
-        .ok('Yes')
-        .cancel('No');
-      $mdDialog.show(confirm).then(function() {
-        $http({url: "api/torrents/"+torrent.info_hash+"/delete", method: "POST"}).success(function(){
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Removing Torrent')
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-          update();
-        }).error(function(err) {
-          if(err.status == 401)
-            location.href='/logout';
-
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Error Removing Torrent: ',err.message)
-              .position('bottom left')
-              .hideDelay(3000)
-          );
+    $.ajax({ url: '/api/torrents' }).then(torrents => {
+      torrents.forEach(t => {
+        t.progress = this.getProgress(t);
+        t.download = 0;
+        t.total = 0;
+        t.files.forEach(f => {
+          t.download += f.completedChunks;
+          t.total += f.totalChunks;
         });
-      }, function() {
       });
-    };
-
-    $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval);
+      this.setState({ torrents });
+      this.updateTimeout = setTimeout(() => this.getTorrents(true), 1000);
+    }, error => {
+      this.setState({ error });
+      this.updateTimeout = setTimeout(() => this.getTorrents(true), 10000);
     });
+  }
 
+  order() {
+    let { order, reverse } = this.state;
+    reverse = reverse ? -1 : 1;
+    return (a, b) => reverse * (typeof a[order] === 'string' ? a[order].localeCompare(b[order]) : a[order] - b[order]);
+  }
 
-    $scope.getProgress = function(torrent) {
-      var total = 0;
-      var progress = 0;
-      for(var i in torrent.files) {
-        var totalChunks = torrent.files[i].totalChunks;
-        var completedChunks = torrent.files[i].completedChunks;
-        total += totalChunks;
-        progress += completedChunks;
-        torrent.files[i].progress = completedChunks / totalChunks;
+  reorder(order) {
+    if (this.state.order === order) this.setState({ reverse: !this.state.reverse });else this.setState({ order, reverse: false });
+  }
 
-      }
-      return progress / total * 100;
+  render() {
+    return React.createElement(
+      Card,
+      null,
+      React.createElement(
+        CardHeader,
+        { title: 'Torrents' },
+        $level(PERMISSIONS.EDIT_TORRENT, React.createElement(AddButton, { placeholder: 'Torrent or Magnet Link',
+          onSubmit: result => {
+            $.ajax({
+              method: 'post',
+              url: '/api/torrents?url=' + result
+            }).then(resp => {
+              console.log(resp);
+              this.getTorrents();
+            }, err => console.warn(err));
+          } }))
+      ),
+      React.createElement(
+        'div',
+        { style: { overflow: 'auto' } },
+        React.createElement(
+          'table',
+          { style: {
+              borderCollapse: 'collapse',
+              width: '100%'
+            } },
+          React.createElement(
+            'thead',
+            { style: {
+                borderBottom: 'thin solid ' + subheaderColor
+              } },
+            React.createElement(Th, { onClick: () => this.reorder('name'),
+              active: this.state.order === 'name',
+              reverse: this.state.reverse,
+              label: 'Name' }),
+            React.createElement(Th, { onClick: () => this.reorder('progress'),
+              active: this.state.order === 'progress',
+              reverse: this.state.reverse,
+              label: 'Progress' }),
+            React.createElement(Th, { onClick: () => this.reorder('download'),
+              active: this.state.order === 'download',
+              reverse: this.state.reverse,
+              label: 'Down' }),
+            React.createElement(Th, { onClick: () => this.reorder('total'),
+              active: this.state.order === 'total',
+              reverse: this.state.reverse,
+              label: 'Size' })
+          ),
+          this.state.torrents.sort(this.order()).map(torrent => React.createElement(Torrent, { torrent: torrent, key: torrent.info_hash }))
+        )
+      )
+    );
+  }
+}
+
+class Torrent extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      expand: false
+    };
+  }
+
+  render() {
+    let torrent = this.props.torrent;
+    return React.createElement(
+      'tbody',
+      null,
+      React.createElement(
+        'tr',
+        { style: {
+            backgroundColor: torrent.status === 'downloading' ? blue100 : green100,
+            cursor: 'pointer'
+          },
+          onClick: () => this.setState({ expand: !this.state.expand }) },
+        React.createElement(
+          Td,
+          null,
+          torrent.name
+        ),
+        React.createElement(
+          Td,
+          { center: true },
+          React.createElement(Progress, { progress: torrent.progress })
+        ),
+        React.createElement(
+          Td,
+          { right: true },
+          torrent.completed
+        ),
+        React.createElement(
+          Td,
+          { right: true },
+          torrent.size
+        )
+      ),
+      $if(this.state.expand, React.createElement(
+        'tr',
+        null,
+        React.createElement(
+          'td',
+          { colSpan: '4' },
+          torrent.files.map(file => {
+            let ratio = file.completedChunks / file.totalChunks;
+            let link = encodeURI(file.path).replace(/&/g, '%26').replace(/;/g, '%3B');
+            return React.createElement(
+              'div',
+              { style: {
+                  alignItems: 'center',
+                  display: 'flex',
+                  padding: '4px',
+                  paddingLeft: '20px'
+                } },
+              React.createElement(
+                'a',
+                { href: '/api/dl?file=' + link,
+                  style: { textDecoration: 'none' },
+                  target: '_blank' },
+                React.createElement(IconButton, { icon: 'attach_file' })
+              ),
+              React.createElement(
+                'span',
+                { style: {
+                    flex: '1',
+                    paddingLeft: '8px'
+                  } },
+                file.name
+              ),
+              React.createElement(
+                'span',
+                null,
+                $bytes(file.size * ratio)
+              )
+            );
+          })
+        )
+      ))
+    );
+  }
+}
+
+let Emby = props => React.createElement('iframe', { style: {
+    border: 'none',
+    flex: '1'
+  },
+  src: '/mb/web/index.html',
+  allowfullscreen: true });
+
+let RuTorrent = props => React.createElement('iframe', { style: {
+    border: 'none',
+    flex: '1'
+  },
+  src: '/rutorrent/',
+  allowfullscreen: true });
+
+class Toolbar extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+
+  render() {
+    return React.createElement(
+      'div',
+      { style: {
+          alignItems: 'center',
+          backgroundColor: teal500,
+          color: primaryFgColor,
+          display: 'flex',
+          flexDirection: 'row',
+          height: '48px',
+          paddingLeft: '20px',
+          paddingRight: '20px'
+        } },
+      React.createElement(
+        'h2',
+        { style: {
+            cursor: 'pointer',
+            fontWeight: '400'
+          },
+          onClick: () => location.hash = "#/" },
+        'MrSeedbox'
+      ),
+      React.createElement(
+        HeaderRow,
+        { flex: true },
+        React.createElement(IconButton, { primary: true,
+          icon: 'home',
+          onClick: $to('') }),
+        $level(PERMISSIONS.READ_TORRENT, React.createElement(IconButton, { primary: true,
+          icon: 'video_library',
+          onClick: $to('emby') })),
+        $level(EDITOR_LEVEL, React.createElement(IconButton, { primary: true,
+          icon: 'file_download',
+          onClick: $to('rutorrent') }))
+      ),
+      React.createElement(
+        HeaderRow,
+        null,
+        React.createElement(IconButton, { primary: true, icon: 'list' }),
+        React.createElement(IconButton, { primary: true, icon: 'chat' }),
+        React.createElement(IconButton, { primary: true, icon: 'stars' })
+      )
+    );
+  }
+}
+
+let Icon = props => React.createElement(
+  'i',
+  { className: 'material-icons', style: props.style },
+  props.children
+);
+
+let IconButton = props => React.createElement(
+  'button',
+  {
+    onClick: props.onClick,
+    type: $hasProp(props, 'submit') ? 'submit' : null,
+    className: $hasProp(props, 'primary') ? 'primary' : '' },
+  React.createElement(
+    Icon,
+    null,
+    props.icon
+  )
+);
+
+class AddButton extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      show: false
     };
 
-    $scope.showLinkDialog = function(ev){
-      $mdDialog.show({
-        controller: 'DialogCtrl',
-        templateUrl: 'views/dialogs/add_torrent_link.html',
-        parent: angular.element(document.body),
-        locals: {
-          payload: {
-            url: ''
-          }
-        },
-        targetEvent: ev,
-        clickOutsideToClose: true
-      }).then(function(success) {
-        $http({url: "api/torrents", method: "POST", params: success}).success(function(){
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Adding Torrent')
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-        }).error(function(err) {
-          if(err.status == 401)
-            location.href='/logout';
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Error Adding Torrent: ',err.message)
-              .position('bottom left')
-              .hideDelay(3000)
-          );
+    this.submit = this.submit.bind(this);
+  }
+
+  submit(event) {
+    event.preventDefault();
+    let result = event.target.field.value;
+    event.target.field.value = "";
+    this.setState({ show: false });
+    if (this.props.onSubmit) this.props.onSubmit(result);
+  }
+
+  render() {
+    return React.createElement(
+      'div',
+      { style: {
+          alignItems: 'center',
+          display: 'flex',
+          flexDirection: 'row'
+        } },
+      $if(this.state.show, React.createElement(
+        'form',
+        { onSubmit: this.submit, style: {
+            alignItems: 'center',
+            display: 'flex',
+            flexDirection: 'row'
+          } },
+        React.createElement('input', { name: 'field',
+          type: 'text',
+          placeholder: this.props.placeholder,
+          style: {
+            outline: 'none',
+            padding: '8px',
+            border: 'none',
+            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.6)'
+          } }),
+        React.createElement(IconButton, { icon: 'add', submit: true })
+      )),
+      $if(!this.state.show, React.createElement(IconButton, { icon: 'add', onClick: () => this.setState({ show: true }) }))
+    );
+  }
+}
+
+let Card = props => React.createElement(
+  'div',
+  { style: {
+      backgroundColor: cardBg,
+      margin: '16px'
+    } },
+  props.children
+);
+
+let CardHeader = props => React.createElement(
+  'div',
+  { style: {
+      alignItems: 'center',
+      display: 'flex',
+      height: '48px',
+      paddingLeft: '16px',
+      paddingRight: '16px'
+    } },
+  React.createElement(
+    'h2',
+    { style: {
+        flex: '1',
+        fontWeight: 400
+      } },
+    props.title
+  ),
+  React.createElement(
+    'div',
+    { style: {
+        alignItems: 'center',
+        display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'flex-end'
+      } },
+    props.children
+  )
+);
+
+let Th = props => React.createElement(
+  'th',
+  {
+    onClick: props.onClick,
+    style: {
+      cursor: 'pointer',
+      fontSize: '0.8em',
+      fontWeight: 400
+    } },
+  React.createElement(
+    'span',
+    { style: {
+        alignItems: 'center',
+        display: 'flex',
+        justifyContent: 'center'
+      } },
+    props.label,
+    React.createElement(
+      Icon,
+      { style: props.active ? {
+          color: subheaderColor,
+          transition: 'all 0.5s ease'
+        } : {
+          color: 'transparent',
+          transition: 'all 0.5s ease'
+        } },
+      props.reverse && props.active ? 'expand_more' : 'expand_less'
+    )
+  )
+);
+
+let Td = props => React.createElement(
+  'td',
+  { style: {
+      padding: '4px',
+      whiteSpace: 'nowrap',
+      textOverflow: 'elipsis',
+      overflow: 'hidden',
+      maxWidth: '500px',
+      textAlign: $hasProp(props, 'left') ? 'left' : $hasProp(props, 'center') ? 'center' : $hasProp(props, 'right') ? 'right' : ''
+    } },
+  React.createElement(
+    'span',
+    { style: {
+        transition: 'margin-left 0.5s ease'
+      }, onMouseOver: e => {
+        let width = $(e.target).width();
+        if (width <= 500) return;
+        $(e.target).css({
+          marginLeft: '-' + (width - 500) + 'px'
         });
-      }, function() {});
-    };
-  });
-
-  app.filter('ago', function($filter){
-    return function(time) {
-      var now = Date.now()/1000;
-      var delta = now-time;
-      if(!time)
-        return 'Never';
-      if(delta < 0)
-        return 'In The Future';
-      if(delta < 10)
-        return 'Now';
-      if(delta < 60)
-        return 'Moments Ago';
-      if(delta < 60 * 60)
-        return Math.round(delta/60) + ' Minute' + (Math.round(delta/60)!=1?'s':'') + ' Ago';
-      if(delta < 60 * 60 * 24)
-        return Math.round(delta/60/60) + ' Hour' + (Math.round(delta/60/60)!=1?'s':'') + ' Ago';
-      if(delta < 60 * 60 * 24 * 7)
-        return Math.round(delta/60/60/24) + ' Day' + (Math.round(delta/60/60/24)!=1?'s':'') + ' Ago';
-      if(delta < 60 * 60 * 24 * 30)
-        return Math.round(delta/60/60/24/7) + ' Week' + (Math.round(delta/60/60/24/7)!=1?'s':'') + ' Ago';
-      return $filter('date')(time * 1000, 'd MMMM yyyy');
-    };
-  });
-
-  app.filter('byte', function($filter) {
-    return function(bytes) {
-      bytes = ~~bytes;
-      if(bytes < 1024) return bytes + " B";
-      else if(bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + " KB";
-      else if(bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + " MB";
-      else return ~~(bytes / 1073741824).toFixed(3) + " GB";
-    };
-  });
-
-
-  app.controller('UserCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
-
-    $scope.users = [];
-
-    var updateInterval;
-
-    var update = function () {
-      $timeout.cancel(updateInterval);
-
-      $http.get('api/users').success(function(users){
-        var map = {};
-        for(var i in $scope.users) {
-          var user = $scope.users[i];
-          user.delete_flag = true;
-          map[user.id] = user;
-        }
-        for(var i in users) {
-          var user = users[i];
-          var exist = map[user.id];
-          if(exist) {
-            exist.name = user.name;
-            exist.email = user.email;
-            exist.level = user.level;
-            exist.last_online = user.last_online;
-            exist.create_time = user.create_time;
-            delete exist.delete_flag;
-          } else {
-            $scope.users.push(user);
-          }
-        }
-        for(var i = 0; i < $scope.users.length; i++) {
-          var user = $scope.users[i];
-          if(user.delete_flag) {
-            $scope.users.splice(i--, 1);
-          }
-        }
-        updateInterval = $timeout(update, 20000);
-      }).error(function(err){
-        if(err.status == 401)
-          location.href='/logout';
-        updateInterval = $timeout(update, 5000);
-      });
-
-    };
-
-    update();
-
-    $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval);
-    });
-
-    $scope.showUserDialog = function(ev, user){
-      var editing = !!user
-      var id;
-      var payload = {
-        name: 'User',
-        email: '',
-        level: 0,
-      };
-      if(editing) {
-        id = user.id;
-        payload = {
-          name: user.name,
-          level: user.level,
-        };
-      }
-      $mdDialog.show({
-        controller: 'DialogCtrl',
-        templateUrl: 'views/dialogs/add_user.html',
-        parent: angular.element(document.body),
-        locals: {
-          level: $scope.level,
-          PERMISSIONS: $scope.PERMISSIONS,
-          editing: editing,
-          payload: payload
-        },
-        targetEvent: ev,
-        clickOutsideToClose: true
-      }).then(function(success) {
-        $http({url: "api/users" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent((editing?"Editing":"Adding")+' User')
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-          update();
-        }).error(function(err) {
-          if(err.status == 401)
-            location.href='/logout';
-
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Error '+(editing?"Editing":"Adding")+' User: ',err.message)
-              .position('bottom left')
-              .hideDelay(3000)
-          );
+      }, onMouseLeave: e => {
+        $(e.target).css({
+          marginLeft: '0px'
         });
-      }, function() {});
-    };
+      } },
+    props.children
+  )
+);
 
+let Progress = props => {
+  let percent = props.progress;
+  return React.createElement(
+    'div',
+    { style: {
+        backgroundColor: subheaderColor,
+        position: 'relative',
+        height: '20px',
+        width: '80px'
+      } },
+    React.createElement(
+      'div',
+      { style: {
+          color: primaryFgColor,
+          left: '50%',
+          position: 'absolute',
+          top: '50%',
+          transform: 'translate(-50%, -50%)'
+        } },
+      Math.round(percent),
+      '%'
+    ),
+    React.createElement('div', { style: {
+        backgroundColor: accentColor,
+        height: '100%',
+        width: percent + '%'
+      } })
+  );
+};
 
-    $scope.removeUser = function(ev, user) {
-      var confirm = $mdDialog.confirm()
-        .title('Confirm Removal')
-        .textContent('Are you certain you want to remove this user?')
-        .ariaLabel('Confirm')
-        .targetEvent(ev)
-        .ok('Yes')
-        .cancel('No');
-      $mdDialog.show(confirm).then(function() {
-        $http({url: "api/users/"+user.id, method: "DELETE"}).success(function(){
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Removing User')
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-          update();
-        }).error(function(err) {
-          if(err.status == 401)
-            location.href='/logout';
+let HeaderRow = props => React.createElement(
+  'div',
+  { style: {
+      alignItems: 'center',
+      display: 'flex',
+      flex: $hasProp(props, 'flex') ? '1' : '',
+      justifyContent: 'center'
+    } },
+  props.children
+);
 
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Error Removing User: ',err.message)
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-        });
-      }, function() {
-      });
-    };
-
-  });
-
-  app.controller('SubscriptionCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
-    $scope.listeners = [];
-    $scope.user_listeners = [];
-
-
-    var updateInterval;
-
-    var update = function () {
-      $timeout.cancel(updateInterval);
-
-      $http.get('api/listeners').success(function(listeners){
-        var listenerMap = {};
-        for(var i in $scope.listeners) {
-          var listener = $scope.listeners[i];
-          listener.delete_flag = true;
-          listenerMap[listener.id] = listener;
-        }
-        for(var i in listeners) {
-          var listener = listeners[i];
-          var exist = listenerMap[listener.id];
-          if(exist) {
-            exist.name = listener.name;
-            exist.pattern = listener.pattern;
-            exist.feed_id = listener.feed_id;
-            delete exist.delete_flag;
-          } else {
-            listenerMap[listener.id] = listener;
-            $scope.listeners.push(listener);
-          }
-        }
-        for(var i = 0; i < $scope.listeners.length; i++) {
-          var listener = $scope.listeners[i];
-          if(listener.delete_flag) {
-            $scope.listeners.splice(i--, 1);
-          }
-        }
-      }).success(function() {
-        $http.get('api/user/listeners').success(function(user_listeners){
-          $scope.user_listeners = user_listeners;
-          var sub_map = {};
-          for(var i in user_listeners) {
-            var sub = user_listeners[i];
-            sub_map[sub.listener_id] = sub;
-          }
-          for(var i in $scope.listeners) {
-            var listener = $scope.listeners[i];
-            listener.sub = sub_map[listener.id];
-          }
-          updateInterval = $timeout(update, 20000);
-        }).error(function(err){
-          if(err.status == 401)
-            location.href='/logout';
-          updateInterval = $timeout(update, 5000);
-        });
-
-      }).error(function(err){
-        if(err.status == 401)
-          location.href='/logout';
-        updateInterval = $timeout(update, 5000);
-      });
-
-    };
-
-    $scope.updateSub = function(listener) {
-      var time = listener.last_update > listener.sub.last_seen ? Math.floor(Date.now()/1000) : listener.last_update - 5;
-      $http({url: "api/user/listeners/" + listener.id, method: "PUT", params: {time: time}}).success(function(){
-        $mdToast.show(
-          $mdToast.simple()
-            .textContent('Updated Subscription')
-            .position('bottom left')
-            .hideDelay(3000)
-        );
-        listener.sub.last_seen = time;
-      }).error(function(err) {
-        if(err.status == 401)
-          location.href='/logout';
-
-        $mdToast.show(
-          $mdToast.simple()
-            .textContent('Error Updating Subscription: ',err.message)
-            .position('bottom left')
-            .hideDelay(3000)
-        );
-      });
-    };
-
-    update();
-
-    $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval);
-    });
-  });
-
-  app.controller('FeedCtrl', function($scope, $http, $timeout, $mdDialog, $mdMedia, $mdToast) {
-
-    $scope.feeds = [];
-    $scope.listeners = [];
-    $scope.user_listeners = [];
-
-    var updateInterval;
-
-    var update = function () {
-      $timeout.cancel(updateInterval);
-
-      $http.get('api/feeds').success(function(feeds){
-        var map = {};
-        for(var i in $scope.feeds) {
-          var feed = $scope.feeds[i];
-          feed.delete_flag = true;
-          map[feed.id] = feed;
-        }
-        for(var i in feeds) {
-          var feed = feeds[i];
-          var exist = map[feed.id];
-          if(exist) {
-            exist.name = feed.name;
-            exist.uri = feed.uri;
-            exist.creator_id = feed.creator_id;
-            exist.last_update = feed.last_update;
-            exist.update_duration = feed.update_duration;
-            delete exist.delete_flag;
-          } else {
-            $scope.feeds.push(feed);
-          }
-        }
-        for(var i = 0; i < $scope.feeds.length; i++) {
-          var feed = $scope.feeds[i];
-          if(feed.delete_flag) {
-            $scope.feeds.splice(i--, 1);
-          }
-        }
-        var listenerMap = {};
-        $http.get('api/listeners').success(function(listeners){
-          for(var i in $scope.listeners) {
-            var listener = $scope.listeners[i];
-            listener.delete_flag = true;
-            listenerMap[listener.id] = listener;
-          }
-          for(var i in listeners) {
-            var listener = listeners[i];
-            var exist = listenerMap[listener.id];
-            if(exist) {
-              exist.name = listener.name;
-              exist.pattern = listener.pattern;
-              exist.feed_id = listener.feed_id;
-              delete exist.delete_flag;
-            } else {
-              listenerMap[listener.id] = listener;
-              $scope.listeners.push(listener);
-            }
-          }
-          for(var i = 0; i < $scope.listeners.length; i++) {
-            var listener = $scope.listeners[i];
-            if(listener.delete_flag) {
-              $scope.listeners.splice(i--, 1);
-            }
-          }
-        }).success(function() {
-          $http.get('api/user/listeners').success(function(user_listeners){
-            $scope.user_listeners = user_listeners;
-            var sub_map = {};
-            for(var i in user_listeners) {
-              var sub = user_listeners[i];
-              sub_map[sub.listener_id] = sub;
-            }
-            for(var i in $scope.listeners) {
-              var listener = $scope.listeners[i];
-              listener.sub = sub_map[listener.id];
-            }
-            updateInterval = $timeout(update, 20000);
-          }).error(function(err){
-            if(err.status == 401)
-              location.href='/logout';
-            updateInterval = $timeout(update, 5000);
-          });
-
-        }).error(function(err){
-          if(err.status == 401)
-            location.href='/logout';
-          updateInterval = $timeout(update, 5000);
-        });
-        
-      }).error(function(err){
-        if(err.status == 401)
-          location.href='/logout';
-        updateInterval = $timeout(update, 5000);
-      });
-
-
-    };
-
-
-    update();
-
-    $scope.$on('$routeChangeStart', function () {
-      $timeout.cancel(updateInterval);
-    });
-
-    $scope.toggleListener = function(listener) {
-      $http({url: "api/user/listeners"+(listener.sub ? "/" + listener.id : ""), method: (listener.sub ? "DELETE" : "POST"), params: {listener_id: listener.id}}).success(function(){
-        $mdToast.show(
-          $mdToast.simple()
-            .textContent((listener.sub?"Removing":"Adding")+' Subscription')
-            .position('bottom left')
-            .hideDelay(3000)
-        );
-        listener.sub = !listener.sub;
-      }).error(function(err) {
-        if(err.status == 401)
-          location.href='/logout';
-
-        $mdToast.show(
-          $mdToast.simple()
-            .textContent('Error '+(listener.sub?"Removing":"Adding")+' Subscription: ',err.message)
-            .position('bottom left')
-            .hideDelay(3000)
-        );
-      });
-    };
-
-    $scope.showFeedDialog = function(ev, feed){
-      var editing = !!feed;
-      var id;
-      var payload = {
-        url: '',
-        name: 'Feed',
-        duration: 15
-      };
-      if(editing) {
-        id = feed.id;
-        payload = {
-          url: feed.uri,
-          name: feed.name,
-          duration: feed.update_duration
-        };
-      }
-      $mdDialog.show({
-        controller: 'DialogCtrl',
-        templateUrl: 'views/dialogs/add_feed.html',
-        parent: angular.element(document.body),
-        locals: {
-          editing: editing,
-          payload: payload
-        },
-        targetEvent: ev,
-        clickOutsideToClose: true
-      }).then(function(success) {
-        $http({url: "api/feeds" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent((editing?"Editing":"Adding")+' Feed')
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-          update();
-        }).error(function(err) {
-          if(err.status == 401)
-            location.href='/logout';
-
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Error '+(editing?"Editing":"Adding")+' Feed: ',err.message)
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-        });
-      }, function() {});
-    };
-
-
-    $scope.removeFeed = function(ev, feed) {
-      var confirm = $mdDialog.confirm()
-        .title('Confirm Removal')
-        .textContent('Are you certain you want to remove this feed?')
-        .ariaLabel('Confirm')
-        .targetEvent(ev)
-        .ok('Yes')
-        .cancel('No');
-      $mdDialog.show(confirm).then(function() {
-        $http({url: "api/feeds/"+feed.id, method: "DELETE"}).success(function(){
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Removing Feed')
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-          update();
-        }).error(function(err) {
-          if(err.status == 401)
-            location.href='/logout';
-
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Error Removing Feed: ',err.message)
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-        });
-      }, function() {
-      });
-    };
-
-    $scope.showListenerDialog = function(ev, feed, listener){
-      var editing = !!listener;
-      var id;
-      var payload = {
-        feed_id: feed.id,
-        name: 'Listener',
-        pattern: '.'
-      };
-      if(editing) {
-        id = listener.id;
-        payload = {
-          name: listener.name,
-          pattern: listener.pattern
-        };
-      }
-      $mdDialog.show({
-        controller: 'DialogCtrl',
-        templateUrl: 'views/dialogs/add_listener.html',
-        parent: angular.element(document.body),
-        locals: {
-          editing: editing,
-          payload: payload
-        },
-        targetEvent: ev,
-        clickOutsideToClose: true
-      }).then(function(success) {
-        $http({url: "api/listeners" + (editing ? "/"+id : ""), method: (editing ? "PUT" : "POST"), params: success}).success(function(){
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent((editing?"Editing":"Adding")+' Listener')
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-          update();
-        }).error(function(err) {
-          if(err.status == 401)
-            location.href='/logout';
-
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Error '+(editing?"Editing":"Adding")+' Listener: ',err.message)
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-        });
-      }, function() {});
-    };
-
-
-    $scope.removeListener = function(ev, listener) {
-      var confirm = $mdDialog.confirm()
-        .title('Confirm Removal')
-        .textContent('Are you certain you want to remove this listener?')
-        .ariaLabel('Confirm')
-        .targetEvent(ev)
-        .ok('Yes')
-        .cancel('No');
-      $mdDialog.show(confirm).then(function() {
-        $http({url: "api/listeners/"+listener.id, method: "DELETE"}).success(function(){
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Removing Listener')
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-          update();
-        }).error(function(err) {
-          if(err.status == 401)
-            location.href='/logout';
-
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Error Removing Listener: ',err.message)
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-        });
-      }, function() {
-      });
-    };
-
-    $scope.sortListener = function(ev, listener) {
-      var confirm = $mdDialog.confirm()
-        .title('Confirm Sort')
-        .textContent('Are you certain you want to sort this listener? (This will stop and remove torrents)')
-        .ariaLabel('Confirm')
-        .targetEvent(ev)
-        .ok('Yes')
-        .cancel('No');
-      $mdDialog.show(confirm).then(function() {
-        $http({url: "api/listeners/"+listener.id+"/sort", method: "POST"}).success(function(){
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Sorted Listener')
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-        }).error(function(err) {
-          if(err.status == 401)
-            location.href='/logout';
-
-          $mdToast.show(
-            $mdToast.simple()
-              .textContent('Error Sorting Listener: ',err.message)
-              .position('bottom left')
-              .hideDelay(3000)
-          );
-        });
-      }, function() {
-      });
-    };
-
-  });
-
-  app.controller('DialogCtrl', function($scope, $http, locals, $mdDialog) {
-    $scope.locals = locals;
-
-    $scope.hide = function() {
-      $mdDialog.hide();
-    };
-
-    $scope.cancel = function() {
-      $mdDialog.cancel();
-    };
-
-    $scope.answer = function (answer) {
-      $mdDialog.hide(answer);
-    };
-  });
-
-  app.controller('FrameCtrl', function($scope) {
-  });
-
-
-
-})();
+ReactDOM.render(React.createElement(Seedbox, null), $('#root')[0]);
