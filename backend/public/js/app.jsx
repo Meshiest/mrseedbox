@@ -2,17 +2,29 @@ const { HashRouter, Route, Switch } = ReactRouterDOM;
 
 const teal500 = '#00897B';
 const blue100 = '#BBDEFB';
-const accentColor = '#039BE5';
 const green100 = '#C8E6C9';
+const blue600 = '#039BE5';
+const grey100 = '#F5F5F5';
+
+const accentColor = blue600;
 const primaryFgColor = '#ffffff';
+const primaryBgColor = teal500;
+const tintColor = grey100;
 const cardBg = '#ffffff';
 const bgColor = '#eeeeee';
 const subheaderColor = '#555555';
 
-const OWNER_LEVEL   = 3
-const EDITOR_LEVEL  = 2
-const MEMBER_LEVEL  = 1
-const VISITOR_LEVEL = 0
+// Permission levels
+const OWNER_LEVEL   = 3;
+const EDITOR_LEVEL  = 2;
+const MEMBER_LEVEL  = 1;
+const VISITOR_LEVEL = 0;
+const UI_LEVELS = {
+  3: "Owner",
+  2: "Editor",
+  1: "Member",
+  0: "Visitor",
+};
 const PERMISSIONS   = {
   EDIT_USER:         3,
   READ_USER:         1,
@@ -30,28 +42,44 @@ const PERMISSIONS   = {
   VISITOR_LEVEL:     0,
 };
 
+/*
+  Boolean - Returns true if the object, `props` has the
+    key, `key`
+*/
 function $hasProp(props, key) {
   return Object.keys(props).includes(key);
 }
 
+/*
+  Function - Returns a function that redirects to the
+    provided `path`
+*/
 function $to(path) {
   return () => location.hash = '#/' + path;
 }
 
+/*
+  [onTrue] - Returns `onTrue` if the `condition` is true,
+    otherwise returns null
+*/
 function $if(condition, onTrue) {
   return condition ? onTrue : null;
 }
 
+/*
+  Component - Returns `elem` if the current user is above
+    or equal to `level` in permissions, also see `PERMISSIONS`
+*/
 function $level(level, elem) {
   return $if(user_level >= level, elem);
 }
 
 function $bytes(bytes) {
   bytes = ~~bytes;
-  if(bytes < 1024) return bytes + " B";
-  else if(bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + " KB";
-  else if(bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + " MB";
-  else return ~~(bytes / 1073741824).toFixed(3) + " GB";
+  if(bytes < 1024) return bytes + ' B';
+  else if(bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + ' KB';
+  else if(bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + ' MB';
+  else return ~~(bytes / 1073741824).toFixed(3) + ' GB';
 }
 
 class Seedbox extends React.Component {
@@ -67,14 +95,36 @@ class Seedbox extends React.Component {
           display: 'flex',
           flexDirection: 'column',
         }}>
-        <Toolbar>
+        <Toolbar title="MrSeedbox">
+          <HeaderRow flex>
+            <IconButton primary
+              icon="home"
+              onClick={$to('')}/>
+            {$level(PERMISSIONS.READ_TORRENT,
+              <IconButton primary
+                icon="video_library"
+                onClick={$to('emby')}/>
+            )}
+            {$level(EDITOR_LEVEL,
+              <IconButton primary
+                icon="file_download"
+                onClick={$to('rutorrent')}/>
+            )}
+          </HeaderRow>
+          <HeaderRow>
+            <IconButton primary icon="list"></IconButton>
+            <IconButton primary icon="chat"></IconButton>
+            <IconButton primary icon="stars"></IconButton>
+          </HeaderRow>
         </Toolbar>
         <HashRouter>
           <Switch>
             <Route exact path="/" component={Home}/>
+
             {$level(PERMISSIONS.READ_TORRENT,
               <Route exact path="/emby" component={Emby}/>
             )}
+
             {$level(EDITOR_LEVEL,
               <Route exact path="/rutorrent" component={RuTorrent}/>
             )}
@@ -93,12 +143,90 @@ class Home extends React.Component {
   render() {
     return (
       <div>
+        <User/>
         <Torrents/>
       </div>
     );
   }
 }
 
+// Renders a welcome message for the user
+class User extends React.Component {
+  constructor(props) {
+    super(props);
+
+    let welcome = 'Welcome';
+    let time = new Date();
+    let hours = time.getHours(), mins = time.getMinutes();
+
+    if(5 <= hours && hours <= 8)
+      welcome = 'Good Morning';
+
+    if(hours > 8 && hours < 12)
+      welcome = 'Top of the Morning';
+
+    if(hours === 12 && mins <= 5)
+      welcome = 'It\'s High Noon';
+
+    else if(hours >= 12 && hours <= 17)
+      welcome = 'Good Afternoon';
+      
+    if(hours > 17 && hours <= 21)
+      welcome = 'Good Evening';
+
+    if(hours > 21 || hours < 5)
+      welcome = 'Good Night';
+
+    this.state = {
+      user: {
+        name: 'Friend',
+        email: 'n/a',
+      },
+      welcome
+    };
+  }
+
+  componentDidMount() {
+    $.ajax({
+      url: '/api/users'
+    }).then(users => {
+      users.forEach(user => {
+        if(user.id === user_id)
+          this.setState({user});
+      })
+    });
+  }
+
+  render() {
+    let { user, welcome } = this.state;
+    return (
+      <div style={{
+          alignItems: 'center',
+          color: subheaderColor,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}>
+        <h2 style={{
+          fontWeight: 400,
+          marginTop: '16px',
+        }}>
+          {welcome}, {user.name}
+        </h2>
+        <subhead style={{
+            fontSize: '12px',
+          }}>
+          {user.email} 
+        </subhead>
+        <sup style={{fontSize: '12px', marginBottom: '8px'}}>
+          {UI_LEVELS[user_level]} #{user_id}
+        </sup>
+      </div>
+    );
+  }
+}
+
+// Renders all torrents in a table
 class Torrents extends React.Component {
   constructor(props) {
     super(props);
@@ -138,17 +266,18 @@ class Torrents extends React.Component {
 
   getTorrents(again) {
     clearTimeout(this.updateTimeout);
-    
+
     $.ajax({url: '/api/torrents'})
     .then(
       torrents => {
         torrents.forEach(t => {
-          t.progress = this.getProgress(t);
+          t.progress = t.ratio * 100;
           t.download = 0;
           t.total = 0;
           t.files.forEach(f => {
-            t.download += f.completedChunks;
-            t.total += f.totalChunks;
+            let ratio = f.completedChunks / f.totalChunks;
+            t.download += f.size;
+            t.total += f.size / ratio;
           });
         });
         this.setState({torrents});
@@ -226,7 +355,7 @@ class Torrents extends React.Component {
                 label="Size"/>
             </thead>
             {this.state.torrents.sort(this.order()).map(torrent =>
-              <Torrent torrent={torrent} key={torrent.info_hash}/>
+              <Torrent getTorrents={this.getTorrents} torrent={torrent} key={torrent.info_hash}/>
             )}
           </table>
         </div>
@@ -235,6 +364,7 @@ class Torrents extends React.Component {
   }
 }
 
+// Renders a single torrent table row
 class Torrent extends React.Component {
   constructor(props) {
     super(props);
@@ -249,7 +379,11 @@ class Torrent extends React.Component {
     return (
       <tbody>
         <tr style={{
-            backgroundColor: torrent.status === 'downloading' ? blue100 : green100,
+            backgroundColor: (
+              torrent.status === 'downloading' ? blue100 :
+              torrent.status === 'seeding' ? green100 :
+              grey100
+            ),
             cursor: 'pointer',
           }}
           onClick={()=>this.setState({expand: !this.state.expand})}>
@@ -269,6 +403,40 @@ class Torrent extends React.Component {
         {$if(this.state.expand,
           <tr>
             <td colSpan="4">
+              {$level(PERMISSIONS.EDIT_TORRENT,
+                <div style={{
+                    display: 'flex',
+                    backgroundColor: tintColor,
+                    borderBottom: 'thin solid ' + bgColor,
+                  }}>
+                  <HeaderRow>
+                    <IconButton icon={torrent.status == 'stopped' ? 'play_arrow' : 'pause'} onClick={e =>
+                      $.ajax({
+                        method: 'post',
+                        url: `/api/torrents/${torrent.info_hash}/${torrent.status == 'stopped' ? 'start' : 'stop'}`
+                      }).then(
+                        this.props.getTorrents,
+                        err => console.warn(err)
+                      )
+                    }/>
+                  </HeaderRow>
+                  <HeaderRow flex>
+                    Created {torrent.creationDate}
+                  </HeaderRow>
+                  <HeaderRow>
+                    <IconButton icon="delete" onClick={e =>
+                      confirm("Are you sure you want to delete " + torrent.name) && $.ajax({
+                        method: 'post',
+                        url: `/api/torrents/${torrent.info_hash}/delete`
+                      }).then(
+                        this.props.getTorrents,
+                        err => console.warn(err)
+                      )
+                    }/>
+                  </HeaderRow>
+                </div>
+              )}
+
               {torrent.files.map(file => {
                 let ratio = file.completedChunks / file.totalChunks;
                 let link = encodeURI(file.path)
@@ -322,61 +490,58 @@ let RuTorrent = props => (
   </iframe>
 );
 
-class Toolbar extends React.Component {
-  constructor(props) {
-    super(props);
-  }
+/*
+  A colored toolbar
+  <Toolbar
+    title="string"> // Title of the toolbar
+      ...           // Other components in the toolbar
+  </Toolbar>
+*/
+let Toolbar = props =>(
+  <div style={{
+    alignItems: 'center',
+    backgroundColor: primaryBgColor,
+    color: primaryFgColor,
+    display: 'flex',
+    flexDirection: 'row',
+    height: '48px',
+    paddingRight: '20px',
+    paddingLeft: '20px',
+  }}>
+    <h2 style={{
+        cursor: 'pointer',
+        fontWeight: '400',
+      }}
+      className="toolbar-title"
+      onClick={()=>location.hash="#/"}>
+      {props.title}
+    </h2>
+    {props.children}
+  </div>
+);
 
-  render() {
-    return (
-      <div style={{
-        alignItems: 'center',
-        backgroundColor: teal500,
-        color: primaryFgColor,
-        display: 'flex',
-        flexDirection: 'row',
-        height: '48px',
-        paddingLeft: '20px',
-        paddingRight: '20px',
-      }}>
-        <h2 style={{
-            cursor: 'pointer',
-            fontWeight: '400',
-          }}
-          onClick={()=>location.hash="#/"}>
-          MrSeedbox
-        </h2>
-        <HeaderRow flex>
-          <IconButton primary
-            icon="home"
-            onClick={$to('')}/>
-          {$level(PERMISSIONS.READ_TORRENT,
-            <IconButton primary
-              icon="video_library"
-              onClick={$to('emby')}/>
-          )}
-          {$level(EDITOR_LEVEL,
-            <IconButton primary
-              icon="file_download"
-              onClick={$to('rutorrent')}/>
-          )}
-        </HeaderRow>
-        <HeaderRow>
-          <IconButton primary icon="list"></IconButton>
-          <IconButton primary icon="chat"></IconButton>
-          <IconButton primary icon="stars"></IconButton>
-        </HeaderRow>
-      </div>
-    );
-  }
-}
-
+/*
+  Basic material icon
+  <Icon
+    style={object}> // Component styling
+    icon_label      // Icon label
+  </Icon>
+*/
 let Icon = props => (
   <i className="material-icons" style={props.style}>
     {props.children}
   </i>
 );
 
+/*
+  Used as a button
+
+  <IconButton
+    onClick={fn} // Click handler
+    submit       // form submit
+    primary      // add primary class
+    /> 
+*/
 let IconButton = props => (
   <button
     onClick={props.onClick}
@@ -386,6 +551,14 @@ let IconButton = props => (
   </button>
 );
 
+/*
+  Used as a button that opens an input
+
+  <AddButton
+    placeholder="string" // Input placeholder
+    onSubmit={fn}        // Return function
+    icon="string"        // Button icon, default is "add"
+*/
 class AddButton extends React.Component {
   constructor(props) {
     super(props);
@@ -427,11 +600,11 @@ class AddButton extends React.Component {
               border: 'none',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.6)',
             }}/>
-            <IconButton icon="add" submit/>
+            <IconButton icon={this.props.icon || "add"} submit/>
         </form>
       )}
       {$if(!this.state.show, 
-        <IconButton icon="add" onClick={
+        <IconButton icon={this.props.icon || "add"} onClick={
           () => this.setState({show: true})
         }/>
       )}
@@ -439,15 +612,28 @@ class AddButton extends React.Component {
   }
 }
 
+/*
+  <Card> ... </Card>
+    Basic card container
+*/
 let Card = props => (
   <div style={{
       backgroundColor: cardBg,
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
       margin: '16px',
+      width: 'calc(100vw - 32px)',
     }}>
     {props.children}
   </div>
 );
 
+/*
+  Used with <Card/> for a header
+  <CardHeader>
+    title="string"> // Title of the card
+    ...             // ... Things to put on the right
+  </CardHeader>
+*/
 let CardHeader = props => (
   <div style={{
       alignItems: 'center',
@@ -473,11 +659,21 @@ let CardHeader = props => (
   </div>
 );
 
+/*
+  Table header that supports sorting
+  <Th
+    onClick={fn}      // Click handler
+    active={boolean}  // True if last selected
+    label="string"    // Text content
+    reverse={boolean} // If the sort icon is reversed
+    nosort            // Disables the sort icon
+    />
+*/
 let Th = props => (
   <th
     onClick={props.onClick}
     style={{
-      cursor: 'pointer',
+      cursor: $hasProp(props, 'nosort') ? '' : 'pointer',
       fontSize: '0.8em',
       fontWeight: 400,
     }}>
@@ -487,19 +683,31 @@ let Th = props => (
         justifyContent: 'center',
       }}>
       {props.label}
-      <Icon style={props.active ? {
-          color: subheaderColor,
-          transition: 'all 0.5s ease',
-        } : {
-          color: 'transparent',
-          transition: 'all 0.5s ease',
-        }}>
-        { props.reverse && props.active ? 'expand_more' : 'expand_less' }
-      </Icon>
+      {$if(!$hasProp(props, 'nosort'),
+        <Icon style={props.active ? {
+            color: subheaderColor,
+            transition: 'all 0.5s ease',
+          } : {
+            color: 'transparent',
+            transition: 'all 0.5s ease',
+          }}>
+          { props.reverse && props.active ? 'expand_more' : 'expand_less' }
+        </Icon>
+      )}
     </span>
   </th>
 );
 
+/*
+  Table cell element
+  <Td
+    left   // justify text left
+    right  // justify text right
+    center // justify text center
+    >
+    ...    // Cell contents
+  </Td>
+*/
 let Td = props => (
   <td style={{
       padding: '4px',
@@ -529,6 +737,12 @@ let Td = props => (
   </td>
 );
 
+/*
+  A neat progress bar
+  <Progress
+    progress={Number} // progress range 0..100.0
+    width={"string"}  // width, default is '80px'
+*/
 let Progress = props => {
   let percent = props.progress;
   return (
@@ -536,7 +750,7 @@ let Progress = props => {
         backgroundColor: subheaderColor,
         position: 'relative',
         height: '20px',
-        width: '80px',
+        width: props.width || '80px',
       }}>
       <div style={{
           color: primaryFgColor,
@@ -556,6 +770,13 @@ let Progress = props => {
   );
 }
 
+/*
+  A row that allows flexing typically used in headers
+  <HeaderRow
+    flex>     // Should this component flex
+      ...     // Content of the component
+  </HeaderRow>
+*/
 let HeaderRow = props => (
   <div style={{
       alignItems: 'center',
@@ -566,5 +787,12 @@ let HeaderRow = props => (
     {props.children}
   </div>
 );
+
+
+/*
+  A space filler for flex components, Functionally a div
+  <Flex/>
+*/
+let Flex = props => <div style={{flex: 1}}>{props.children}</div>
 
 ReactDOM.render(<Seedbox/>, $('#root')[0]);

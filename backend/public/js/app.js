@@ -2,17 +2,29 @@ const { HashRouter, Route, Switch } = ReactRouterDOM;
 
 const teal500 = '#00897B';
 const blue100 = '#BBDEFB';
-const accentColor = '#039BE5';
 const green100 = '#C8E6C9';
+const blue600 = '#039BE5';
+const grey100 = '#F5F5F5';
+
+const accentColor = blue600;
 const primaryFgColor = '#ffffff';
+const primaryBgColor = teal500;
+const tintColor = grey100;
 const cardBg = '#ffffff';
 const bgColor = '#eeeeee';
 const subheaderColor = '#555555';
 
+// Permission levels
 const OWNER_LEVEL = 3;
 const EDITOR_LEVEL = 2;
 const MEMBER_LEVEL = 1;
 const VISITOR_LEVEL = 0;
+const UI_LEVELS = {
+  3: "Owner",
+  2: "Editor",
+  1: "Member",
+  0: "Visitor"
+};
 const PERMISSIONS = {
   EDIT_USER: 3,
   READ_USER: 1,
@@ -30,25 +42,41 @@ const PERMISSIONS = {
   VISITOR_LEVEL: 0
 };
 
+/*
+  Boolean - Returns true if the object, `props` has the
+    key, `key`
+*/
 function $hasProp(props, key) {
   return Object.keys(props).includes(key);
 }
 
+/*
+  Function - Returns a function that redirects to the
+    provided `path`
+*/
 function $to(path) {
   return () => location.hash = '#/' + path;
 }
 
+/*
+  [onTrue] - Returns `onTrue` if the `condition` is true,
+    otherwise returns null
+*/
 function $if(condition, onTrue) {
   return condition ? onTrue : null;
 }
 
+/*
+  Component - Returns `elem` if the current user is above
+    or equal to `level` in permissions, also see `PERMISSIONS`
+*/
 function $level(level, elem) {
   return $if(user_level >= level, elem);
 }
 
 function $bytes(bytes) {
   bytes = ~~bytes;
-  if (bytes < 1024) return bytes + " B";else if (bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + " KB";else if (bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + " MB";else return ~~(bytes / 1073741824).toFixed(3) + " GB";
+  if (bytes < 1024) return bytes + ' B';else if (bytes < 1048576) return ~~(bytes / 1024).toFixed(3) + ' KB';else if (bytes < 1073741824) return ~~(bytes / 1048576).toFixed(3) + ' MB';else return ~~(bytes / 1073741824).toFixed(3) + ' GB';
 }
 
 class Seedbox extends React.Component {
@@ -65,7 +93,30 @@ class Seedbox extends React.Component {
           display: 'flex',
           flexDirection: 'column'
         } },
-      React.createElement(Toolbar, null),
+      React.createElement(
+        Toolbar,
+        { title: 'MrSeedbox' },
+        React.createElement(
+          HeaderRow,
+          { flex: true },
+          React.createElement(IconButton, { primary: true,
+            icon: 'home',
+            onClick: $to('') }),
+          $level(PERMISSIONS.READ_TORRENT, React.createElement(IconButton, { primary: true,
+            icon: 'video_library',
+            onClick: $to('emby') })),
+          $level(EDITOR_LEVEL, React.createElement(IconButton, { primary: true,
+            icon: 'file_download',
+            onClick: $to('rutorrent') }))
+        ),
+        React.createElement(
+          HeaderRow,
+          null,
+          React.createElement(IconButton, { primary: true, icon: 'list' }),
+          React.createElement(IconButton, { primary: true, icon: 'chat' }),
+          React.createElement(IconButton, { primary: true, icon: 'stars' })
+        )
+      ),
       React.createElement(
         HashRouter,
         null,
@@ -90,11 +141,91 @@ class Home extends React.Component {
     return React.createElement(
       'div',
       null,
+      React.createElement(User, null),
       React.createElement(Torrents, null)
     );
   }
 }
 
+// Renders a welcome message for the user
+class User extends React.Component {
+  constructor(props) {
+    super(props);
+
+    let welcome = 'Welcome';
+    let time = new Date();
+    let hours = time.getHours(),
+        mins = time.getMinutes();
+
+    if (5 <= hours && hours <= 8) welcome = 'Good Morning';
+
+    if (hours > 8 && hours < 12) welcome = 'Top of the Morning';
+
+    if (hours === 12 && mins <= 5) welcome = 'It\'s High Noon';else if (hours >= 12 && hours <= 17) welcome = 'Good Afternoon';
+
+    if (hours > 17 && hours <= 21) welcome = 'Good Evening';
+
+    if (hours > 21 || hours < 5) welcome = 'Good Night';
+
+    this.state = {
+      user: {
+        name: 'Friend',
+        email: 'n/a'
+      },
+      welcome
+    };
+  }
+
+  componentDidMount() {
+    $.ajax({
+      url: '/api/users'
+    }).then(users => {
+      users.forEach(user => {
+        if (user.id === user_id) this.setState({ user });
+      });
+    });
+  }
+
+  render() {
+    let { user, welcome } = this.state;
+    return React.createElement(
+      'div',
+      { style: {
+          alignItems: 'center',
+          color: subheaderColor,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center'
+        } },
+      React.createElement(
+        'h2',
+        { style: {
+            fontWeight: 400,
+            marginTop: '16px'
+          } },
+        welcome,
+        ', ',
+        user.name
+      ),
+      React.createElement(
+        'subhead',
+        { style: {
+            fontSize: '12px'
+          } },
+        user.email
+      ),
+      React.createElement(
+        'sup',
+        { style: { fontSize: '12px', marginBottom: '8px' } },
+        UI_LEVELS[user_level],
+        ' #',
+        user_id
+      )
+    );
+  }
+}
+
+// Renders all torrents in a table
 class Torrents extends React.Component {
   constructor(props) {
     super(props);
@@ -136,12 +267,13 @@ class Torrents extends React.Component {
 
     $.ajax({ url: '/api/torrents' }).then(torrents => {
       torrents.forEach(t => {
-        t.progress = this.getProgress(t);
+        t.progress = t.ratio * 100;
         t.download = 0;
         t.total = 0;
         t.files.forEach(f => {
-          t.download += f.completedChunks;
-          t.total += f.totalChunks;
+          let ratio = f.completedChunks / f.totalChunks;
+          t.download += f.size;
+          t.total += f.size / ratio;
         });
       });
       this.setState({ torrents });
@@ -211,13 +343,14 @@ class Torrents extends React.Component {
               reverse: this.state.reverse,
               label: 'Size' })
           ),
-          this.state.torrents.sort(this.order()).map(torrent => React.createElement(Torrent, { torrent: torrent, key: torrent.info_hash }))
+          this.state.torrents.sort(this.order()).map(torrent => React.createElement(Torrent, { getTorrents: this.getTorrents, torrent: torrent, key: torrent.info_hash }))
         )
       )
     );
   }
 }
 
+// Renders a single torrent table row
 class Torrent extends React.Component {
   constructor(props) {
     super(props);
@@ -235,7 +368,7 @@ class Torrent extends React.Component {
       React.createElement(
         'tr',
         { style: {
-            backgroundColor: torrent.status === 'downloading' ? blue100 : green100,
+            backgroundColor: torrent.status === 'downloading' ? blue100 : torrent.status === 'seeding' ? green100 : grey100,
             cursor: 'pointer'
           },
           onClick: () => this.setState({ expand: !this.state.expand }) },
@@ -266,6 +399,36 @@ class Torrent extends React.Component {
         React.createElement(
           'td',
           { colSpan: '4' },
+          $level(PERMISSIONS.EDIT_TORRENT, React.createElement(
+            'div',
+            { style: {
+                display: 'flex',
+                backgroundColor: tintColor,
+                borderBottom: 'thin solid ' + bgColor
+              } },
+            React.createElement(
+              HeaderRow,
+              null,
+              React.createElement(IconButton, { icon: torrent.status == 'stopped' ? 'play_arrow' : 'pause', onClick: e => $.ajax({
+                  method: 'post',
+                  url: `/api/torrents/${torrent.info_hash}/${torrent.status == 'stopped' ? 'start' : 'stop'}`
+                }).then(this.props.getTorrents, err => console.warn(err)) })
+            ),
+            React.createElement(
+              HeaderRow,
+              { flex: true },
+              'Created ',
+              torrent.creationDate
+            ),
+            React.createElement(
+              HeaderRow,
+              null,
+              React.createElement(IconButton, { icon: 'delete', onClick: e => confirm("Are you sure you want to delete " + torrent.name) && $.ajax({
+                  method: 'post',
+                  url: `/api/torrents/${torrent.info_hash}/delete`
+                }).then(this.props.getTorrents, err => console.warn(err)) })
+            )
+          )),
           torrent.files.map(file => {
             let ratio = file.completedChunks / file.totalChunks;
             let link = encodeURI(file.path).replace(/&/g, '%26').replace(/;/g, '%3B');
@@ -319,63 +482,60 @@ let RuTorrent = props => React.createElement('iframe', { style: {
   src: '/rutorrent/',
   allowfullscreen: true });
 
-class Toolbar extends React.Component {
-  constructor(props) {
-    super(props);
-  }
+/*
+  A colored toolbar
+  <Toolbar
+    title="string"> // Title of the toolbar
+      ...           // Other components in the toolbar
+  </Toolbar>
+*/
+let Toolbar = props => React.createElement(
+  'div',
+  { style: {
+      alignItems: 'center',
+      backgroundColor: primaryBgColor,
+      color: primaryFgColor,
+      display: 'flex',
+      flexDirection: 'row',
+      height: '48px',
+      paddingRight: '20px',
+      paddingLeft: '20px'
+    } },
+  React.createElement(
+    'h2',
+    { style: {
+        cursor: 'pointer',
+        fontWeight: '400'
+      },
+      className: 'toolbar-title',
+      onClick: () => location.hash = "#/" },
+    props.title
+  ),
+  props.children
+);
 
-  render() {
-    return React.createElement(
-      'div',
-      { style: {
-          alignItems: 'center',
-          backgroundColor: teal500,
-          color: primaryFgColor,
-          display: 'flex',
-          flexDirection: 'row',
-          height: '48px',
-          paddingLeft: '20px',
-          paddingRight: '20px'
-        } },
-      React.createElement(
-        'h2',
-        { style: {
-            cursor: 'pointer',
-            fontWeight: '400'
-          },
-          onClick: () => location.hash = "#/" },
-        'MrSeedbox'
-      ),
-      React.createElement(
-        HeaderRow,
-        { flex: true },
-        React.createElement(IconButton, { primary: true,
-          icon: 'home',
-          onClick: $to('') }),
-        $level(PERMISSIONS.READ_TORRENT, React.createElement(IconButton, { primary: true,
-          icon: 'video_library',
-          onClick: $to('emby') })),
-        $level(EDITOR_LEVEL, React.createElement(IconButton, { primary: true,
-          icon: 'file_download',
-          onClick: $to('rutorrent') }))
-      ),
-      React.createElement(
-        HeaderRow,
-        null,
-        React.createElement(IconButton, { primary: true, icon: 'list' }),
-        React.createElement(IconButton, { primary: true, icon: 'chat' }),
-        React.createElement(IconButton, { primary: true, icon: 'stars' })
-      )
-    );
-  }
-}
-
+/*
+  Basic material icon
+  <Icon
+    style={object}> // Component styling
+    icon_label      // Icon label
+  </Icon>
+*/
 let Icon = props => React.createElement(
   'i',
   { className: 'material-icons', style: props.style },
   props.children
 );
 
+/*
+  Used as a button
+
+  <IconButton
+    onClick={fn} // Click handler
+    submit       // form submit
+    primary      // add primary class
+    /> 
+*/
 let IconButton = props => React.createElement(
   'button',
   {
@@ -389,6 +549,14 @@ let IconButton = props => React.createElement(
   )
 );
 
+/*
+  Used as a button that opens an input
+
+  <AddButton
+    placeholder="string" // Input placeholder
+    onSubmit={fn}        // Return function
+    icon="string"        // Button icon, default is "add"
+*/
 class AddButton extends React.Component {
   constructor(props) {
     super(props);
@@ -432,22 +600,35 @@ class AddButton extends React.Component {
             border: 'none',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.6)'
           } }),
-        React.createElement(IconButton, { icon: 'add', submit: true })
+        React.createElement(IconButton, { icon: this.props.icon || "add", submit: true })
       )),
-      $if(!this.state.show, React.createElement(IconButton, { icon: 'add', onClick: () => this.setState({ show: true }) }))
+      $if(!this.state.show, React.createElement(IconButton, { icon: this.props.icon || "add", onClick: () => this.setState({ show: true }) }))
     );
   }
 }
 
+/*
+  <Card> ... </Card>
+    Basic card container
+*/
 let Card = props => React.createElement(
   'div',
   { style: {
       backgroundColor: cardBg,
-      margin: '16px'
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
+      margin: '16px',
+      width: 'calc(100vw - 32px)'
     } },
   props.children
 );
 
+/*
+  Used with <Card/> for a header
+  <CardHeader>
+    title="string"> // Title of the card
+    ...             // ... Things to put on the right
+  </CardHeader>
+*/
 let CardHeader = props => React.createElement(
   'div',
   { style: {
@@ -477,12 +658,22 @@ let CardHeader = props => React.createElement(
   )
 );
 
+/*
+  Table header that supports sorting
+  <Th
+    onClick={fn}      // Click handler
+    active={boolean}  // True if last selected
+    label="string"    // Text content
+    reverse={boolean} // If the sort icon is reversed
+    nosort            // Disables the sort icon
+    />
+*/
 let Th = props => React.createElement(
   'th',
   {
     onClick: props.onClick,
     style: {
-      cursor: 'pointer',
+      cursor: $hasProp(props, 'nosort') ? '' : 'pointer',
       fontSize: '0.8em',
       fontWeight: 400
     } },
@@ -494,7 +685,7 @@ let Th = props => React.createElement(
         justifyContent: 'center'
       } },
     props.label,
-    React.createElement(
+    $if(!$hasProp(props, 'nosort'), React.createElement(
       Icon,
       { style: props.active ? {
           color: subheaderColor,
@@ -504,10 +695,20 @@ let Th = props => React.createElement(
           transition: 'all 0.5s ease'
         } },
       props.reverse && props.active ? 'expand_more' : 'expand_less'
-    )
+    ))
   )
 );
 
+/*
+  Table cell element
+  <Td
+    left   // justify text left
+    right  // justify text right
+    center // justify text center
+    >
+    ...    // Cell contents
+  </Td>
+*/
 let Td = props => React.createElement(
   'td',
   { style: {
@@ -537,6 +738,12 @@ let Td = props => React.createElement(
   )
 );
 
+/*
+  A neat progress bar
+  <Progress
+    progress={Number} // progress range 0..100.0
+    width={"string"}  // width, default is '80px'
+*/
 let Progress = props => {
   let percent = props.progress;
   return React.createElement(
@@ -545,7 +752,7 @@ let Progress = props => {
         backgroundColor: subheaderColor,
         position: 'relative',
         height: '20px',
-        width: '80px'
+        width: props.width || '80px'
       } },
     React.createElement(
       'div',
@@ -567,6 +774,13 @@ let Progress = props => {
   );
 };
 
+/*
+  A row that allows flexing typically used in headers
+  <HeaderRow
+    flex>     // Should this component flex
+      ...     // Content of the component
+  </HeaderRow>
+*/
 let HeaderRow = props => React.createElement(
   'div',
   { style: {
@@ -575,6 +789,16 @@ let HeaderRow = props => React.createElement(
       flex: $hasProp(props, 'flex') ? '1' : '',
       justifyContent: 'center'
     } },
+  props.children
+);
+
+/*
+  A space filler for flex components, Functionally a div
+  <Flex/>
+*/
+let Flex = props => React.createElement(
+  'div',
+  { style: { flex: 1 } },
   props.children
 );
 
