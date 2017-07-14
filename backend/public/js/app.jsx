@@ -326,7 +326,7 @@ class Torrents extends React.Component {
               }}/>
           )}
         </CardHeader>
-        <div style={{overflow: 'auto'}}>
+        {this.state.torrents.length ? <div style={{overflow: 'auto'}}>
           <table style={{
               borderCollapse: 'collapse',
               width: '100%',
@@ -358,7 +358,11 @@ class Torrents extends React.Component {
               <Torrent getTorrents={this.getTorrents} torrent={torrent} key={torrent.info_hash}/>
             )}
           </table>
-        </div>
+        </div> : <div style={{
+          color: subheaderColor,
+          padding: '16px',
+          textAlign: 'center',
+        }}>No torrents. Try adding one!</div>}
       </Card>
     );
   }
@@ -387,7 +391,7 @@ class Torrent extends React.Component {
             cursor: 'pointer',
           }}
           onClick={()=>this.setState({expand: !this.state.expand})}>
-          <Td>
+          <Td expand>
             {torrent.name}
           </Td>
           <Td center>
@@ -470,6 +474,7 @@ class Torrent extends React.Component {
   }
 }
 
+// Emby iframe
 let Emby = props => (
   <iframe style={{
       border: 'none',
@@ -480,6 +485,7 @@ let Emby = props => (
   </iframe>
 );
 
+// Rutorrent iframe
 let RuTorrent = props => (
   <iframe style={{
       border: 'none',
@@ -704,6 +710,7 @@ let Th = props => (
     left   // justify text left
     right  // justify text right
     center // justify text center
+    expand // take up extra space
     >
     ...    // Cell contents
   </Td>
@@ -712,22 +719,26 @@ let Td = props => (
   <td style={{
       padding: '4px',
       whiteSpace: 'nowrap',
-      textOverflow: 'elipsis',
-      overflow: 'hidden',
-      maxWidth: '500px',
+      overflow: $hasProp(props, 'expand') ? 'hidden' : '',
+      width: $hasProp(props, 'expand') ? '100%' : 'auto',
+      position: 'relative',
       textAlign: 
         $hasProp(props, 'left') ? 'left' : 
         $hasProp(props, 'center') ? 'center' : 
         $hasProp(props, 'right') ? 'right' : '',
+      textOverflow: 'elipsis',
     }}>
     <span style={{
-      transition: 'margin-left 0.5s ease'
+      transition: 'margin-left 1s ease',
+      top: $hasProp(props, 'expand') ? '4px' : '0',
+      position: $hasProp(props, 'expand') ? 'absolute' : 'relative',
     }} onMouseOver={e => {
       let width = $(e.target).width();
-      if(width <= 500)
+      let maxWidth = $(e.target).parent().width();
+      if(width <= maxWidth)
         return;
       $(e.target).css({
-        marginLeft: '-'+(width-500)+'px',
+        marginLeft: '-'+(width-maxWidth)+'px',
       })
     }} onMouseLeave={e => {
       $(e.target).css({

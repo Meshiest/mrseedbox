@@ -312,7 +312,7 @@ class Torrents extends React.Component {
             }, err => console.warn(err));
           } }))
       ),
-      React.createElement(
+      this.state.torrents.length ? React.createElement(
         'div',
         { style: { overflow: 'auto' } },
         React.createElement(
@@ -345,6 +345,14 @@ class Torrents extends React.Component {
           ),
           this.state.torrents.sort(this.order()).map(torrent => React.createElement(Torrent, { getTorrents: this.getTorrents, torrent: torrent, key: torrent.info_hash }))
         )
+      ) : React.createElement(
+        'div',
+        { style: {
+            color: subheaderColor,
+            padding: '16px',
+            textAlign: 'center'
+          } },
+        'No torrents. Try adding one!'
       )
     );
   }
@@ -374,7 +382,7 @@ class Torrent extends React.Component {
           onClick: () => this.setState({ expand: !this.state.expand }) },
         React.createElement(
           Td,
-          null,
+          { expand: true },
           torrent.name
         ),
         React.createElement(
@@ -468,6 +476,7 @@ class Torrent extends React.Component {
   }
 }
 
+// Emby iframe
 let Emby = props => React.createElement('iframe', { style: {
     border: 'none',
     flex: '1'
@@ -475,6 +484,7 @@ let Emby = props => React.createElement('iframe', { style: {
   src: '/mb/web/index.html',
   allowfullscreen: true });
 
+// Rutorrent iframe
 let RuTorrent = props => React.createElement('iframe', { style: {
     border: 'none',
     flex: '1'
@@ -705,6 +715,7 @@ let Th = props => React.createElement(
     left   // justify text left
     right  // justify text right
     center // justify text center
+    expand // take up extra space
     >
     ...    // Cell contents
   </Td>
@@ -714,20 +725,24 @@ let Td = props => React.createElement(
   { style: {
       padding: '4px',
       whiteSpace: 'nowrap',
-      textOverflow: 'elipsis',
-      overflow: 'hidden',
-      maxWidth: '500px',
-      textAlign: $hasProp(props, 'left') ? 'left' : $hasProp(props, 'center') ? 'center' : $hasProp(props, 'right') ? 'right' : ''
+      overflow: $hasProp(props, 'expand') ? 'hidden' : '',
+      width: $hasProp(props, 'expand') ? '100%' : 'auto',
+      position: 'relative',
+      textAlign: $hasProp(props, 'left') ? 'left' : $hasProp(props, 'center') ? 'center' : $hasProp(props, 'right') ? 'right' : '',
+      textOverflow: 'elipsis'
     } },
   React.createElement(
     'span',
     { style: {
-        transition: 'margin-left 0.5s ease'
+        transition: 'margin-left 1s ease',
+        top: $hasProp(props, 'expand') ? '4px' : '0',
+        position: $hasProp(props, 'expand') ? 'absolute' : 'relative'
       }, onMouseOver: e => {
         let width = $(e.target).width();
-        if (width <= 500) return;
+        let maxWidth = $(e.target).parent().width();
+        if (width <= maxWidth) return;
         $(e.target).css({
-          marginLeft: '-' + (width - 500) + 'px'
+          marginLeft: '-' + (width - maxWidth) + 'px'
         });
       }, onMouseLeave: e => {
         $(e.target).css({
