@@ -86,10 +86,28 @@ function $bytes(bytes) {
   else return ~~(bytes / 1073741824).toFixed(3) + ' GB';
 }
 
+/*
+  Refreshes the page when a user has invalid authorization
+*/
 function $handleError(err) {
   if(err && err.status === 401)
     location.reload();
   console.warn(err);
+}
+
+/*
+  Closes the opened modal
+*/
+function $closeModal(e) {
+  $('#modal').html('').css('display', 'none');
+}
+
+/*
+  Opens a given component as a modal
+*/
+function $openModal(component) {
+  $('#modal').css('display', 'block');
+  ReactDOM.render(component, $('#modal')[0]);
 }
 
 /*
@@ -568,6 +586,8 @@ class Feeds extends React.Component {
 
     this.state = {
       feeds: [],
+      listeners: [],
+      subscriptions: {},
     };
 
     this.getFeeds = this.getFeeds.bind(this);
@@ -581,12 +601,26 @@ class Feeds extends React.Component {
     clearTimeout(this.updateTimeout);
 
     $.ajax({url: '/api/feeds'})
-    .then(
-      feeds => {
-        this.setState({feeds});
-        this.updateTimeout = setTimeout(() => this.getFeeds(), 60 * 1000);
-      },
-      error => {
+    .then(feeds => {
+        $.ajax({url: '/api/listeners'})
+        .then(listeners => {
+            $.ajax({url: '/api/user/listeners'})
+            .then(arr => {
+                let subscriptions = {};
+                arr.forEach(s => subscriptions[s.listener_id] = s);
+                this.setState({ listeners, subscriptions, feeds});
+                this.updateTimeout = setTimeout(() => this.getFeeds(), 60 * 1000);
+              }, error => {
+                $handleError(error);
+                this.updateTimeout = setTimeout(() => this.getFeeds(), 60 * 1000);
+              }
+            );
+          }, error => {
+            $handleError(error);
+            this.updateTimeout = setTimeout(() => this.getFeeds(), 60 * 1000);
+          }
+        );
+      }, error => {
         $handleError(error);
         this.updateTimeout = setTimeout(() => this.getFeeds(), 60 * 1000);
       }
@@ -598,13 +632,20 @@ class Feeds extends React.Component {
       <Card>
         <CardHeader title="Feeds">
           {$level(PERMISSIONS.EDIT_FEED,
-            <IconButton icon="add"/>
+            <IconButton icon="playlist_add" onClick={e => {
+              $openModal(<Modal title="Add Feed" onClose={$closeModal}>
+                Hello
+              </Modal>);
+            }}/>
           )}
           <IconButton icon="refresh" onClick={this.getFeeds}/>
         </CardHeader>
         <div style={{paddingBottom: '16px'}}>
           {this.state.feeds.map(f =>
-            <Feed feed={f}/>)}
+            <Feed feed={f} key={f.id}
+              listeners={this.state.listeners}
+              refresh={this.getFeeds}
+              subscriptions={this.state.subscriptions}/>)}
         </div>
       </Card>
     );
@@ -652,7 +693,54 @@ class Feed extends React.Component {
             </div>
           )}
         </div>
-
+        <div>
+          {$filter(this.props.listeners, l => l.feed_id == feed.id ).map(l =>
+            <div style={{
+                alignItems: 'center',
+                display: 'flex',
+              }}>
+              <IconButton icon={this.props.subscriptions[l.id] ? 'star' : 'star_border'}/>
+              <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  width: '300px',
+                  marginLeft: '8px',
+                  marginTop: '4px',
+                }}>
+                <Overflow height='15px'>{l.name}</Overflow>
+                <Overflow>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    fontSize: '10px',
+                    }}>
+                    /{l.pattern}/i
+                  </span>
+                </Overflow>
+              </div>
+              <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1',
+                  marginLeft: '8px',
+                  marginTop: '4px',
+                }}>
+                <div style={{
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                  }}>
+                  {$ago(l.last_update)}
+                </div>
+                <div style={{
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    fontSize: '10px',
+                  }}>
+                  {l.subscribers} Subscribers
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -743,6 +831,13 @@ let IconButton = props => (
   </div>
 );
 
+/*
+  <Chip
+    onClick={fn}    // chip click function
+    icon="icon">    // chip icon
+    ...             // chip text
+  </Chip>
+*/
 let Chip = props => (
   <div className="chip" onClick={props.onClick} style={{
       alignItems: 'center',
@@ -820,7 +915,11 @@ class AddButton extends React.Component {
 }
 
 /*
-  <Card> ... </Card>
+  <Card
+    nostretch>          // prevents the card from taking up the entire width
+    nostretch="100px">  // changes the given width of the card
+    ...
+  </Card>
     Basic card container
 */
 let Card = props => (
@@ -828,9 +927,52 @@ let Card = props => (
       backgroundColor: cardBg,
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
       margin: '16px',
-      width: 'calc(100vw - 32px)',
+      flex: '1',
+      maxWidth: $hasProp(props, 'nostretch') ? (props.nostretch || 'auto') :
+        'calc(100vw - 32px)',
     }}>
     {props.children}
+  </div>
+);
+
+/*
+  Modal Container for a Card
+  <Modal
+    title="string"    // title of modal
+    onClose={fn}>     // on close callback, must hide the modal
+    ...               // modal card content
+  </Modal>
+*/
+let Modal = props => (
+  <div style={{
+    height: '100vh',
+    left: '0',
+    top: '0',
+    width: '100vw',
+  }}>
+    <div style={{
+        alignItems: 'center',
+        display: 'flex',
+        justifyContent: 'center',
+        height: '100vh',
+        width: '100vw',
+      }}>
+      <Card nostretch="300px">
+        <CardHeader title={props.title}>
+          <IconButton icon="close" onClick={props.onClose}/>
+        </CardHeader>
+        {props.children}
+      </Card>
+    </div>
+    <div onClick={props.onClose} style={{
+      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      height: '100vh',
+      left: '0',
+      position: 'fixed',
+      top: '0',
+      width: '100%',
+      zIndex: '-5',
+    }}></div>
   </div>
 );
 
