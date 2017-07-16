@@ -249,15 +249,16 @@ class Home extends React.Component {
     return React.createElement(
       'div',
       null,
-      React.createElement(User, null),
+      React.createElement(Dashboard, null),
       React.createElement(Feeds, null),
+      $level(PERMISSIONS.READ_USER, React.createElement(Users, null)),
       React.createElement(Torrents, null)
     );
   }
 }
 
 // Renders a welcome message for the user
-class User extends React.Component {
+class Dashboard extends React.Component {
   constructor(props) {
     super(props);
 
@@ -388,12 +389,19 @@ class User extends React.Component {
           { icon: 'visibility', key: s.listener_id, onClick: e => {
               let time = Math.floor(Date.now() / 1000);
               $.ajax({
-                url: `/api/user/listeners/${s.listener_id}?time=${time}`,
-                method: 'PUT' }).then(this.updateListeners, $handleError);
+                url: `/api/user/listeners/${s.listener_id}`,
+                method: 'PUT',
+                data: { time }
+              }).then(this.updateListeners, $handleError);
             } },
           this.state.listeners[s.listener_id].name
         ))
-      ))
+      )),
+      React.createElement(IconButton, { icon: 'exit_to_app', style: {
+          position: 'absolute',
+          right: '12px',
+          top: '56px'
+        }, onClick: () => $.ajax('/logout').then(e => location.reload(), e => location.reload()) })
     );
   }
 }
@@ -624,6 +632,209 @@ class Torrent extends React.Component {
   }
 }
 
+class Users extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      users: []
+    };
+
+    this.getUsers = this.getUsers.bind(this);
+    this.showUserModal = this.showUserModal.bind(this);
+  }
+
+  componentDidMount() {
+    this.getUsers();
+  }
+
+  getUsers() {
+    clearTimeout(this.updateTimeout);
+
+    $.ajax({ url: '/api/users' }).then(users => {
+      this.setState({ users });
+      this.updateTimeout = setTimeout(() => this.getUsers(), 60 * 1000);
+    }, error => {
+      $handleError(error);
+      this.updateTimeout = setTimeout(() => this.getUsers(), 60 * 1000);
+    });
+  }
+
+  showUserModal(add, user) {
+    return e => {
+      user = user || { name: '', email: '', level: 0 };
+      $openModal(React.createElement(
+        Modal,
+        { title: (add ? 'Add' : 'Edit') + ' User', onClose: $closeModal },
+        React.createElement(
+          Padding,
+          null,
+          React.createElement(
+            'form',
+            {
+              style: {
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'stretch'
+              },
+              onSubmit: e => {
+                e.preventDefault();
+                if (!e.target.checkValidity()) return;
+
+                let data = {
+                  name: e.target.name.value,
+                  email: e.target.email.value,
+                  level: e.target.level.value
+                };
+
+                let xhr;
+
+                if (add) xhr = $.ajax({ url: 'api/users', method: 'POST', data });else xhr = $.ajax({ url: 'api/users/' + user.id, method: 'PUT', data });
+
+                $closeModal();
+
+                xhr.then(this.getUsers, $handleError);
+              } },
+            React.createElement(Input, { name: 'name', margin: true,
+              type: 'text',
+              placeholder: 'User Name',
+              defaultValue: user.name,
+              required: true }),
+            React.createElement(Input, { name: 'email', margin: true,
+              type: 'text',
+              defaultValue: user.email,
+              placeholder: 'User Email',
+              required: true }),
+            React.createElement(
+              'select',
+              { name: 'level',
+                className: 'input',
+                style: {
+                  backgroundColor: cardBg,
+                  margin: '4px'
+                },
+                defaultValue: user.level,
+                hidden: user_level < PERMISSIONS.EDIT_USER,
+                required: true },
+              React.createElement(
+                'option',
+                { value: '0' },
+                'Visitor'
+              ),
+              React.createElement(
+                'option',
+                { value: '1' },
+                'Member'
+              ),
+              React.createElement(
+                'option',
+                { value: '2' },
+                'Editor'
+              ),
+              React.createElement(
+                'option',
+                { value: '3' },
+                'Owner'
+              )
+            ),
+            React.createElement(
+              'div',
+              { style: { display: 'flex', justifyContent: 'flex-end' } },
+              React.createElement(
+                'button',
+                { type: 'submit',
+                  className: 'primary',
+                  style: { fontSize: '16px', padding: '8px' } },
+                add ? 'CREATE' : 'EDIT'
+              )
+            )
+          )
+        )
+      ));
+    };
+  }
+
+  render() {
+    return React.createElement(
+      Card,
+      null,
+      React.createElement(
+        CardHeader,
+        { title: 'Users' },
+        $level(PERMISSIONS.EDIT_USER, React.createElement(IconButton, { icon: 'add', onClick: this.showUserModal(true) })),
+        React.createElement(IconButton, { icon: 'refresh', onClick: this.getUsers })
+      ),
+      React.createElement(
+        'div',
+        { style: { paddingBottom: '16px' } },
+        this.state.users.map(u => React.createElement(User, { user: u, key: u.id,
+          refresh: this.getUsers,
+          showUserModal: this.showUserModal }))
+      )
+    );
+  }
+}
+
+let User = props => {
+  let { user } = props;
+
+  return React.createElement(
+    'div',
+    { style: {
+        borderLeft: 'solid 2px ' + primaryBgColor,
+        marginLeft: '16px',
+        marginTop: '16px',
+        padding: '8px'
+      } },
+    React.createElement(
+      'div',
+      { style: { display: 'flex' } },
+      React.createElement(
+        'div',
+        { style: { flex: '1' } },
+        React.createElement(
+          'h2',
+          { style: {
+              fontWeight: '400'
+            } },
+          user.name,
+          React.createElement(
+            'span',
+            { style: { fontSize: '14px' } },
+            '\xA0',
+            UI_LEVELS[user.level],
+            ' #',
+            user.id
+          )
+        ),
+        React.createElement(
+          'subhead',
+          { style: { color: subheaderColor, fontSize: '12px' } },
+          React.createElement(
+            Overflow,
+            null,
+            user.email
+          )
+        )
+      ),
+      $level(PERMISSIONS.EDIT_USER || user.id === user_id, React.createElement(
+        'div',
+        { style: { display: 'flex' } },
+        React.createElement(IconButton, { icon: 'create', onClick: props.showUserModal(false, user) })
+      )),
+      $level(PERMISSIONS.EDIT_USER, React.createElement(
+        'div',
+        { style: { display: 'flex' } },
+        React.createElement(IconButton, { icon: 'delete', onClick: e => {
+            $confirmModal('Delete User', `Are you sure you want to delete user "${user.name}"?`).then(() => {
+              $.ajax({ method: 'delete', url: '/api/users/' + user.id }).then(props.refresh, $handleError);
+            });
+          } })
+      ))
+    )
+  );
+};
+
 // List of Feeds
 class Feeds extends React.Component {
   constructor(props) {
@@ -826,156 +1037,148 @@ class Feeds extends React.Component {
 }
 
 // Feed in the list of feeds
-class Feed extends React.Component {
-  constructor(props) {
-    super(props);
+let Feed = props => {
+  let { feed } = props;
 
-    this.state = {};
-  }
-
-  render() {
-    let { feed } = this.props;
-
-    return React.createElement(
+  return React.createElement(
+    'div',
+    { style: {
+        borderLeft: 'solid 2px ' + primaryBgColor,
+        marginLeft: '16px',
+        marginTop: '16px',
+        padding: '8px'
+      } },
+    React.createElement(
       'div',
-      { style: {
-          borderLeft: 'solid 2px ' + primaryBgColor,
-          marginLeft: '16px',
-          marginTop: '16px',
-          padding: '8px'
-        } },
+      { style: { display: 'flex' } },
       React.createElement(
         'div',
+        { style: { flex: '1' } },
+        React.createElement(
+          'h2',
+          { style: {
+              fontWeight: '400'
+            } },
+          feed.name,
+          React.createElement(
+            'span',
+            { style: { fontSize: '14px' } },
+            '\xA0by ',
+            feed.creator_name
+          )
+        ),
+        React.createElement(
+          'subhead',
+          { style: { color: subheaderColor, fontSize: '12px' } },
+          React.createElement(
+            Overflow,
+            null,
+            feed.uri
+          )
+        )
+      ),
+      $level(PERMISSIONS.EDIT_LISTENER, React.createElement(
+        'div',
         { style: { display: 'flex' } },
+        React.createElement(IconButton, { icon: 'playlist_add', onClick: props.showListenerModal(true, feed) })
+      )),
+      $level(PERMISSIONS.EDIT_FEED, React.createElement(
+        'div',
+        { style: { display: 'flex' } },
+        React.createElement(IconButton, { icon: 'create', onClick: props.showFeedModal(false, feed) }),
+        React.createElement(IconButton, { icon: 'delete', onClick: e => {
+            $confirmModal('Delete Feed', `Are you sure you want to delete feed "${feed.name}"?`).then(() => {
+              $.ajax({ method: 'delete', url: '/api/feeds/' + feed.id }).then(props.refresh, $handleError);
+            });
+          } })
+      ))
+    ),
+    React.createElement(
+      'div',
+      null,
+      $filter(props.listeners, l => l.feed_id == feed.id).map(l => React.createElement(
+        'div',
+        { style: {
+            alignItems: 'center',
+            display: 'flex'
+          } },
+        React.createElement(IconButton, { icon: props.subscriptions[l.id] ? 'star' : 'star_border',
+          onClick: e => $.ajax({
+            url: 'api/user/listeners' + (props.subscriptions[l.id] ? '/' + l.id : ''),
+            method: props.subscriptions[l.id] ? 'delete' : 'post',
+            data: { listener_id: l.id }
+          }).then(props.refresh, $handleError) }),
         React.createElement(
           'div',
-          { style: { flex: '1' } },
+          { style: {
+              display: 'flex',
+              flexDirection: 'column',
+              width: '300px',
+              marginLeft: '8px',
+              marginTop: '4px'
+            } },
           React.createElement(
-            'h2',
-            { style: {
-                fontWeight: '400'
-              } },
-            feed.name,
-            React.createElement(
-              'span',
-              { style: { fontSize: '14px' } },
-              '\xA0by ',
-              feed.creator_name
-            )
+            Overflow,
+            { height: '15px' },
+            l.name
           ),
           React.createElement(
-            'subhead',
-            { style: { color: subheaderColor, fontSize: '12px' } },
+            Overflow,
+            null,
             React.createElement(
-              Overflow,
-              null,
-              feed.uri
+              'span',
+              { style: {
+                  fontFamily: 'monospace',
+                  fontSize: '10px'
+                } },
+              '/',
+              l.pattern,
+              '/i'
             )
+          )
+        ),
+        React.createElement(
+          'div',
+          { style: {
+              display: 'flex',
+              flexDirection: 'column',
+              flex: '1',
+              marginLeft: '8px',
+              marginTop: '4px'
+            } },
+          React.createElement(
+            'div',
+            { style: {
+                whiteSpace: 'nowrap',
+                overflow: 'hidden'
+              } },
+            $ago(l.last_update)
+          ),
+          React.createElement(
+            'div',
+            { style: {
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                fontSize: '10px'
+              } },
+            l.subscribers,
+            ' Subscribers'
           )
         ),
         $level(PERMISSIONS.EDIT_LISTENER, React.createElement(
           'div',
           { style: { display: 'flex' } },
-          React.createElement(IconButton, { icon: 'playlist_add', onClick: this.props.showListenerModal(true, feed) })
-        )),
-        $level(PERMISSIONS.EDIT_FEED, React.createElement(
-          'div',
-          { style: { display: 'flex' } },
-          React.createElement(IconButton, { icon: 'create', onClick: this.props.showFeedModal(false, feed) }),
+          React.createElement(IconButton, { icon: 'create', onClick: props.showListenerModal(false, feed, l) }),
           React.createElement(IconButton, { icon: 'delete', onClick: e => {
-              $confirmModal('Delete Feed', `Are you sure you want to delete feed "${feed.name}"?`).then(() => {
-                $.ajax({ method: 'delete', url: '/api/feeds/' + feed.id }).then(this.props.refresh, $handleError);
+              $confirmModal('Delete Listener', `Are you sure you want to delete listener "${l.name}"?`).then(() => {
+                $.ajax({ method: 'delete', url: '/api/listeners/' + l.id }).then(props.refresh, $handleError);
               });
             } })
         ))
-      ),
-      React.createElement(
-        'div',
-        null,
-        $filter(this.props.listeners, l => l.feed_id == feed.id).map(l => React.createElement(
-          'div',
-          { style: {
-              alignItems: 'center',
-              display: 'flex'
-            } },
-          React.createElement(IconButton, { icon: this.props.subscriptions[l.id] ? 'star' : 'star_border',
-            onClick: e => $.ajax({
-              url: 'api/user/listeners' + (this.props.subscriptions[l.id] ? '/' + l.id : ''),
-              method: this.props.subscriptions[l.id] ? 'delete' : 'post',
-              data: { listener_id: l.id }
-            }).then(this.props.refresh, $handleError) }),
-          React.createElement(
-            'div',
-            { style: {
-                display: 'flex',
-                flexDirection: 'column',
-                width: '300px',
-                marginLeft: '8px',
-                marginTop: '4px'
-              } },
-            React.createElement(
-              Overflow,
-              { height: '15px' },
-              l.name
-            ),
-            React.createElement(
-              Overflow,
-              null,
-              React.createElement(
-                'span',
-                { style: {
-                    fontFamily: 'monospace',
-                    fontSize: '10px'
-                  } },
-                '/',
-                l.pattern,
-                '/i'
-              )
-            )
-          ),
-          React.createElement(
-            'div',
-            { style: {
-                display: 'flex',
-                flexDirection: 'column',
-                flex: '1',
-                marginLeft: '8px',
-                marginTop: '4px'
-              } },
-            React.createElement(
-              'div',
-              { style: {
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden'
-                } },
-              $ago(l.last_update)
-            ),
-            React.createElement(
-              'div',
-              { style: {
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  fontSize: '10px'
-                } },
-              l.subscribers,
-              ' Subscribers'
-            )
-          ),
-          $level(PERMISSIONS.EDIT_LISTENER, React.createElement(
-            'div',
-            { style: { display: 'flex' } },
-            React.createElement(IconButton, { icon: 'create', onClick: this.props.showListenerModal(false, feed, l) }),
-            React.createElement(IconButton, { icon: 'delete', onClick: e => {
-                $confirmModal('Delete Listener', `Are you sure you want to delete listener "${l.name}"?`).then(() => {
-                  $.ajax({ method: 'delete', url: '/api/listeners/' + l.id }).then(this.props.refresh, $handleError);
-                });
-              } })
-          ))
-        ))
-      )
-    );
-  }
-}
+      ))
+    )
+  );
+};
 
 // Emby iframe
 let Emby = props => React.createElement('iframe', { style: {
@@ -1052,10 +1255,11 @@ let IconButton = props => React.createElement(
   { style: { alignItems: 'center', display: 'flex' } },
   React.createElement(
     'button',
-    {
+    _extends({
       onClick: props.onClick,
       type: $hasProp(props, 'submit') ? 'submit' : null,
-      className: $hasProp(props, 'primary') ? 'primary' : '' },
+      className: 'icon-button' + ($hasProp(props, 'primary') ? ' primary' : '')
+    }, props),
     React.createElement(
       Icon,
       null,

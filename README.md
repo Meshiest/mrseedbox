@@ -1,6 +1,8 @@
 ## Mr Seedbox
 
-### Screenshots
+Please note this is *not* my best (or even good) work. I use this repo to test weird coding habits on a larger scale.
+
+### (Old) Screenshots
 
 ![](http://i.imgur.com/WDeD1Is.png)
 ![](http://i.imgur.com/tMiGwxQ.png)

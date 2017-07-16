@@ -252,8 +252,9 @@ class Home extends React.Component {
   render() {
     return (
       <div>
-        <User/>
+        <Dashboard/>
         <Feeds/>
+        {$level(PERMISSIONS.READ_USER, <Users/>)}
         <Torrents/>
       </div>
     );
@@ -261,7 +262,7 @@ class Home extends React.Component {
 }
 
 // Renders a welcome message for the user
-class User extends React.Component {
+class Dashboard extends React.Component {
   constructor(props) {
     super(props);
 
@@ -355,9 +356,9 @@ class User extends React.Component {
           justifyContent: 'center',
         }}>
         <h2 style={{
-          fontWeight: 400,
-          marginTop: '16px',
-        }}>
+            fontWeight: 400,
+            marginTop: '16px',
+          }}>
           {welcome}, {user.name}
         </h2>
         <subhead style={{
@@ -386,14 +387,21 @@ class User extends React.Component {
               <Chip icon="visibility" key={s.listener_id} onClick={e => {
                   let time = Math.floor(Date.now()/1000);
                   $.ajax({
-                    url: `/api/user/listeners/${s.listener_id}?time=${time}`,
-                    method: 'PUT'}).then(this.updateListeners, $handleError);
+                    url: `/api/user/listeners/${s.listener_id}`,
+                    method: 'PUT',
+                    data: {time},
+                  }).then(this.updateListeners, $handleError);
                 }}>
                 {this.state.listeners[s.listener_id].name}
               </Chip>
             )}
           </div>
         )}
+        <IconButton icon="exit_to_app" style={{
+          position: 'absolute',
+          right: '12px',
+          top: '56px',
+        }} onClick={() => $.ajax('/logout').then(e=>location.reload(), e=>location.reload())}/>
       </div>
     );
   }
@@ -614,6 +622,171 @@ class Torrent extends React.Component {
   }
 }
 
+class Users extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      users: [],
+    };
+
+    this.getUsers = this.getUsers.bind(this);
+    this.showUserModal = this.showUserModal.bind(this);
+  }
+
+  componentDidMount() {
+    this.getUsers();
+  }
+
+  getUsers() {
+    clearTimeout(this.updateTimeout);
+
+    $.ajax({url: '/api/users'})
+    .then(users => {
+        this.setState({ users });
+        this.updateTimeout = setTimeout(() => this.getUsers(), 60 * 1000);
+      }, error => {
+        $handleError(error);
+        this.updateTimeout = setTimeout(() => this.getUsers(), 60 * 1000);
+      }
+    );
+  }
+
+  showUserModal(add, user) {
+    return e => {
+      user = user || {name: '', email: '', level: 0};
+      $openModal(<Modal title={(add ? 'Add' : 'Edit') + ' User'} onClose={$closeModal}>
+        <Padding>
+          <form
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch',
+            }}
+            onSubmit={e => {
+              e.preventDefault();
+              if(!e.target.checkValidity())
+                return;
+
+              let data = {
+                name: e.target.name.value,
+                email: e.target.email.value,
+                level: e.target.level.value,
+              }
+
+              let xhr;
+
+              if(add)
+                xhr = $.ajax({url: 'api/users', method: 'POST', data});
+              else
+                xhr = $.ajax({url: 'api/users/' + user.id, method: 'PUT', data});
+
+              $closeModal();
+
+              xhr.then(this.getUsers, $handleError);
+
+            }}>
+            <Input name="name" margin
+              type="text"
+              placeholder="User Name"
+              defaultValue={user.name}
+              required={true}/>
+            <Input name="email" margin
+              type="text"
+              defaultValue={user.email}
+              placeholder="User Email"
+              required={true}/>
+            <select name="level"
+              className="input"
+              style={{
+                backgroundColor: cardBg,
+                margin: '4px',
+              }}
+              defaultValue={user.level}
+              hidden={user_level < PERMISSIONS.EDIT_USER}
+              required={true}>
+              <option value="0">Visitor</option>
+              <option value="1">Member</option>
+              <option value="2">Editor</option>
+              <option value="3">Owner</option>
+            </select>
+            <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+              <button type="submit"
+                className="primary"
+                style={{fontSize: '16px', padding: '8px'}}>
+                  {add ? 'CREATE' : 'EDIT'}
+              </button>
+            </div>
+          </form>
+        </Padding>
+      </Modal>);
+    }
+  }
+
+  render() {
+    return (
+      <Card>
+        <CardHeader title="Users">
+          {$level(PERMISSIONS.EDIT_USER,
+            <IconButton icon="add" onClick={this.showUserModal(true)}/>
+          )}
+          <IconButton icon="refresh" onClick={this.getUsers}/>
+        </CardHeader>
+        <div style={{paddingBottom: '16px'}}>
+          {this.state.users.map(u =>
+            <User user={u} key={u.id}
+              refresh={this.getUsers}
+              showUserModal={this.showUserModal}/>)}
+        </div>
+      </Card>
+    );
+  }
+}
+
+let User = props => {
+  let { user } = props;
+
+  return (
+    <div style={{
+        borderLeft: 'solid 2px ' + primaryBgColor,
+        marginLeft: '16px',
+        marginTop: '16px',
+        padding: '8px',
+      }}>
+      <div style={{display: 'flex'}}>
+        <div style={{flex: '1'}}>
+          <h2 style={{
+              fontWeight: '400',
+            }}>
+            {user.name}
+            <span style={{fontSize: '14px'}}>
+              &nbsp;{UI_LEVELS[user.level]} #{user.id}
+            </span>
+          </h2>
+          <subhead style={{color: subheaderColor, fontSize: '12px'}}>
+            <Overflow>{user.email}</Overflow>
+          </subhead>
+        </div>
+        {$level(PERMISSIONS.EDIT_USER || user.id === user_id,
+          <div style={{display: 'flex'}}>
+            <IconButton icon="create" onClick={props.showUserModal(false, user)}/>
+          </div>
+        )}
+        {$level(PERMISSIONS.EDIT_USER,
+          <div style={{display: 'flex'}}>
+            <IconButton icon="delete" onClick={e => {
+              $confirmModal('Delete User', `Are you sure you want to delete user "${user.name}"?`)
+                .then(() => {
+                  $.ajax({method: 'delete', url: '/api/users/' + user.id}).then(props.refresh, $handleError);
+                });
+            }}/>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // List of Feeds
 class Feeds extends React.Component {
   constructor(props) {
@@ -813,125 +986,115 @@ class Feeds extends React.Component {
 }
 
 // Feed in the list of feeds
-class Feed extends React.Component {
-  constructor(props) {
-    super(props);
+let Feed = props => {
+  let { feed } = props;
 
-    this.state = {
-
-    };
-  }
-
-  render() {
-    let { feed } = this.props;
-
-    return (
-      <div style={{
-          borderLeft: 'solid 2px ' + primaryBgColor,
-          marginLeft: '16px',
-          marginTop: '16px',
-          padding: '8px',
-        }}>
-        <div style={{display: 'flex'}}>
-          <div style={{flex: '1'}}>
-            <h2 style={{
-                fontWeight: '400',
-              }}>
-              {feed.name}
-              <span style={{fontSize: '14px'}}>
-                &nbsp;by {feed.creator_name}
-              </span>
-            </h2>
-            <subhead style={{color: subheaderColor, fontSize: '12px'}}>
-              <Overflow>{feed.uri}</Overflow>
-            </subhead>
+  return (
+    <div style={{
+        borderLeft: 'solid 2px ' + primaryBgColor,
+        marginLeft: '16px',
+        marginTop: '16px',
+        padding: '8px',
+      }}>
+      <div style={{display: 'flex'}}>
+        <div style={{flex: '1'}}>
+          <h2 style={{
+              fontWeight: '400',
+            }}>
+            {feed.name}
+            <span style={{fontSize: '14px'}}>
+              &nbsp;by {feed.creator_name}
+            </span>
+          </h2>
+          <subhead style={{color: subheaderColor, fontSize: '12px'}}>
+            <Overflow>{feed.uri}</Overflow>
+          </subhead>
+        </div>
+        {$level(PERMISSIONS.EDIT_LISTENER,
+          <div style={{display: 'flex'}}>
+            <IconButton icon="playlist_add" onClick={props.showListenerModal(true, feed)}/>
           </div>
-          {$level(PERMISSIONS.EDIT_LISTENER,
-            <div style={{display: 'flex'}}>
-              <IconButton icon="playlist_add" onClick={this.props.showListenerModal(true, feed)}/>
-            </div>
-          )}
-          {$level(PERMISSIONS.EDIT_FEED,
-            <div style={{display: 'flex'}}>
-              <IconButton icon="create" onClick={this.props.showFeedModal(false, feed)}/>
-              <IconButton icon="delete" onClick={e => {
-                $confirmModal('Delete Feed', `Are you sure you want to delete feed "${feed.name}"?`)
-                  .then(() => {
-                    $.ajax({method: 'delete', url: '/api/feeds/' + feed.id}).then(this.props.refresh, $handleError);
-                  });
-              }}/>
-            </div>
-          )}
-        </div>
-        <div>
-          {$filter(this.props.listeners, l => l.feed_id == feed.id ).map(l =>
-            <div style={{
-                alignItems: 'center',
-                display: 'flex',
-              }}>
-              <IconButton icon={this.props.subscriptions[l.id] ? 'star' : 'star_border'}
-                onClick={e =>
-                  $.ajax({
-                    url: 'api/user/listeners' + (this.props.subscriptions[l.id] ? '/' + l.id : ''),
-                    method: (this.props.subscriptions[l.id] ? 'delete' : 'post'),
-                    data: {listener_id: l.id},
-                  }).then(this.props.refresh, $handleError)
-                }/>
-              <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  width: '300px',
-                  marginLeft: '8px',
-                  marginTop: '4px',
-                }}>
-                <Overflow height='15px'>{l.name}</Overflow>
-                <Overflow>
-                  <span style={{
-                    fontFamily: 'monospace',
-                    fontSize: '10px',
-                    }}>
-                    /{l.pattern}/i
-                  </span>
-                </Overflow>
-              </div>
-              <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: '1',
-                  marginLeft: '8px',
-                  marginTop: '4px',
-                }}>
-                <div style={{
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                  }}>
-                  {$ago(l.last_update)}
-                </div>
-                <div style={{
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    fontSize: '10px',
-                  }}>
-                  {l.subscribers} Subscribers
-                </div>
-              </div>
-              {$level(PERMISSIONS.EDIT_LISTENER,
-                <div style={{display: 'flex'}}>
-                  <IconButton icon="create" onClick={this.props.showListenerModal(false, feed, l)}/>
-                  <IconButton icon="delete" onClick={e => {
-                    $confirmModal('Delete Listener', `Are you sure you want to delete listener "${l.name}"?`)
-                      .then(() => {
-                        $.ajax({method: 'delete', url: '/api/listeners/' + l.id}).then(this.props.refresh, $handleError);
-                      });
-                  }}/>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        )}
+        {$level(PERMISSIONS.EDIT_FEED,
+          <div style={{display: 'flex'}}>
+            <IconButton icon="create" onClick={props.showFeedModal(false, feed)}/>
+            <IconButton icon="delete" onClick={e => {
+              $confirmModal('Delete Feed', `Are you sure you want to delete feed "${feed.name}"?`)
+                .then(() => {
+                  $.ajax({method: 'delete', url: '/api/feeds/' + feed.id}).then(props.refresh, $handleError);
+                });
+            }}/>
+          </div>
+        )}
       </div>
-    );
-  }
+      <div>
+        {$filter(props.listeners, l => l.feed_id == feed.id ).map(l =>
+          <div style={{
+              alignItems: 'center',
+              display: 'flex',
+            }}>
+            <IconButton icon={props.subscriptions[l.id] ? 'star' : 'star_border'}
+              onClick={e =>
+                $.ajax({
+                  url: 'api/user/listeners' + (props.subscriptions[l.id] ? '/' + l.id : ''),
+                  method: (props.subscriptions[l.id] ? 'delete' : 'post'),
+                  data: {listener_id: l.id},
+                }).then(props.refresh, $handleError)
+              }/>
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                width: '300px',
+                marginLeft: '8px',
+                marginTop: '4px',
+              }}>
+              <Overflow height='15px'>{l.name}</Overflow>
+              <Overflow>
+                <span style={{
+                  fontFamily: 'monospace',
+                  fontSize: '10px',
+                  }}>
+                  /{l.pattern}/i
+                </span>
+              </Overflow>
+            </div>
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: '1',
+                marginLeft: '8px',
+                marginTop: '4px',
+              }}>
+              <div style={{
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                }}>
+                {$ago(l.last_update)}
+              </div>
+              <div style={{
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  fontSize: '10px',
+                }}>
+                {l.subscribers} Subscribers
+              </div>
+            </div>
+            {$level(PERMISSIONS.EDIT_LISTENER,
+              <div style={{display: 'flex'}}>
+                <IconButton icon="create" onClick={props.showListenerModal(false, feed, l)}/>
+                <IconButton icon="delete" onClick={e => {
+                  $confirmModal('Delete Listener', `Are you sure you want to delete listener "${l.name}"?`)
+                    .then(() => {
+                      $.ajax({method: 'delete', url: '/api/listeners/' + l.id}).then(props.refresh, $handleError);
+                    });
+                }}/>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // Emby iframe
@@ -1013,7 +1176,8 @@ let IconButton = props => (
     <button
       onClick={props.onClick}
       type={$hasProp(props, 'submit') ? 'submit' : null}
-      className={$hasProp(props, 'primary') ? 'primary' : ''}>
+      className={'icon-button' + ($hasProp(props, 'primary') ? ' primary' : '')}
+      {...props}>
       <Icon>{props.icon}</Icon>
     </button>
   </div>
