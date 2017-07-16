@@ -110,6 +110,41 @@ function $openModal(component) {
   ReactDOM.render(component, $('#modal')[0]);
 }
 
+function $confirmModal(title, text) {
+  return new Promise((resolve, reject) => {  
+    $openModal(
+    <Modal title={title} onClose={e => {
+      $closeModal();
+      reject();
+    }}>
+      <Padding style={{display: 'flex', flexDirection: 'column'}}>
+        <Padding>
+          {text}
+        </Padding>
+        <div style={{display: 'flex', justifyContent: 'flex-end', padding: '4px'}}>
+          <button type="submit"
+            style={{fontSize: '16px', padding: '8px'}}
+            onClick={e => {
+              $closeModal();
+              reject();
+            }}>
+            No
+          </button>
+          <button type="submit"
+            className="primary"
+            style={{fontSize: '16px', padding: '8px'}}
+            onClick={e => {
+              $closeModal();
+              resolve();
+            }}>
+            Yes
+          </button>
+        </div>
+      </Padding>
+    </Modal>);
+  });
+}
+
 /*
   String - A smart timestamp function given a unix time in seconds
 */
@@ -591,6 +626,7 @@ class Feeds extends React.Component {
     };
 
     this.getFeeds = this.getFeeds.bind(this);
+    this.showFeedModal = this.showFeedModal.bind(this);
   }
 
   componentDidMount() {
@@ -627,16 +663,79 @@ class Feeds extends React.Component {
     );
   }
 
+  showFeedModal(add, feed) {
+    return e => {
+      // I'm so stupid for making my api inconsistent
+      feed = feed ?
+        {name: feed.name, url: feed.uri, duration: feed.update_duration, id: feed.id} :
+        {name: '', url: '', duration: ''};
+      $openModal(<Modal title={(add ? 'Add' : 'Edit') + ' Feed'} onClose={$closeModal}>
+        <Padding>
+          <form
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch',
+            }}
+            onSubmit={e => {
+              e.preventDefault();
+              if(!e.target.checkValidity())
+                return;
+
+              let data = {
+                name: e.target.name.value,
+                url: e.target.url.value,
+                duration: e.target.duration.value,
+              }
+
+              let xhr;
+
+              if(add)
+                xhr = $.ajax({url: 'api/feeds', method: 'POST', data});
+              else
+                xhr = $.ajax({url: 'api/feeds/' + feed.id, method: 'PUT', data});
+
+              $closeModal();
+
+              xhr.then(this.getFeeds, $handleError);
+
+            }}>
+            <Input name="name" margin
+              type="text"
+              placeholder="Feed Name"
+              defaultValue={feed.name}
+              required={true}/>
+            <Input name="url" margin
+              type="text"
+              defaultValue={feed.url}
+              placeholder="Feed Url"
+              required={true}/>
+            <Input name="duration" margin
+              type="number"
+              defaultValue={feed.duration}
+              min="15"
+              step="1"
+              placeholder="Feed Duration"
+              required={true}/>
+              <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+                <button type="submit"
+                  className="primary"
+                  style={{fontSize: '16px', padding: '8px', color: primaryBgColor}}>
+                    {add ? 'CREATE' : 'EDIT'}
+                </button>
+              </div>
+          </form>
+        </Padding>
+      </Modal>);
+    }
+  }
+
   render() {
     return (
       <Card>
         <CardHeader title="Feeds">
           {$level(PERMISSIONS.EDIT_FEED,
-            <IconButton icon="playlist_add" onClick={e => {
-              $openModal(<Modal title="Add Feed" onClose={$closeModal}>
-                Hello
-              </Modal>);
-            }}/>
+            <IconButton icon="playlist_add" onClick={this.showFeedModal(true)}/>
           )}
           <IconButton icon="refresh" onClick={this.getFeeds}/>
         </CardHeader>
@@ -645,6 +744,7 @@ class Feeds extends React.Component {
             <Feed feed={f} key={f.id}
               listeners={this.state.listeners}
               refresh={this.getFeeds}
+              showFeedModal={this.showFeedModal}
               subscriptions={this.state.subscriptions}/>)}
         </div>
       </Card>
@@ -688,7 +788,7 @@ class Feed extends React.Component {
           </div>
           {$level(PERMISSIONS.EDIT_FEED,
             <div style={{display: 'flex'}}>
-              <IconButton icon="create"/>
+              <IconButton icon="create" onClick={this.props.showFeedModal(false, feed)}/>
               <IconButton icon="delete"/>
             </div>
           )}
@@ -893,15 +993,7 @@ class AddButton extends React.Component {
           display: 'flex',
           flexDirection: 'row',
         }}>
-          <input name="field"
-            type="text"
-            placeholder={this.props.placeholder}
-            style={{
-              outline: 'none',
-              padding: '8px',
-              border: 'none',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.6)',
-            }}/>
+          <Input placeholder={this.props.placeholder} pattern={this.props.pattern} name="field"/>
             <IconButton icon={this.props.icon || "add"} submit/>
         </form>
       )}
@@ -914,6 +1006,15 @@ class AddButton extends React.Component {
   }
 }
 
+let Input = props => (
+  <input
+    className={'input ' + (props.className || '')}
+    style={{
+      margin: $hasProp(props, 'margin') ? '4px' : '',
+    }}
+    {...props}/>
+);
+
 /*
   <Card
     nostretch>          // prevents the card from taking up the entire width
@@ -925,7 +1026,7 @@ class AddButton extends React.Component {
 let Card = props => (
   <div style={{
       backgroundColor: cardBg,
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
+      // boxShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
       margin: '16px',
       flex: '1',
       maxWidth: $hasProp(props, 'nostretch') ? (props.nostretch || 'auto') :
@@ -934,6 +1035,12 @@ let Card = props => (
     {props.children}
   </div>
 );
+
+/*
+  Padding for layout
+    <Padding> ... </Padding>
+*/
+let Padding = props => <div style={{padding: '16px'}} {...props}>{props.children}</div>;
 
 /*
   Modal Container for a Card
@@ -945,34 +1052,24 @@ let Card = props => (
 */
 let Modal = props => (
   <div style={{
-    height: '100vh',
-    left: '0',
-    top: '0',
-    width: '100vw',
-  }}>
-    <div style={{
-        alignItems: 'center',
-        display: 'flex',
-        justifyContent: 'center',
-        height: '100vh',
-        width: '100vw',
-      }}>
-      <Card nostretch="300px">
-        <CardHeader title={props.title}>
-          <IconButton icon="close" onClick={props.onClose}/>
-        </CardHeader>
-        {props.children}
-      </Card>
-    </div>
-    <div onClick={props.onClose} style={{
-      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      alignItems: 'center',
+      display: 'flex',
       height: '100vh',
+      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      justifyContent: 'center',
       left: '0',
-      position: 'fixed',
       top: '0',
-      width: '100%',
-      zIndex: '-5',
-    }}></div>
+      width: '100vw',
+    }} data-wall onClick={(e)=>{
+      if($(e.target).attr('data-wall') && props.onClose)
+        props.onClose(e);
+    }}>
+    <Card nostretch="300px" onClick={e=>e.preventDefault()} style={{zIndex: '5'}}>
+      <CardHeader title={props.title}>
+        {$if(props.onClose, <IconButton icon="close" onClick={props.onClose}/>)}
+      </CardHeader>
+      {props.children}
+    </Card>
   </div>
 );
 
@@ -989,7 +1086,7 @@ let CardHeader = props => (
       display: 'flex',
       height: '48px',
       paddingLeft: '16px',
-      paddingRight: '16px',
+      paddingRight: '8px',
     }}>
     <h2 style={{
         flex: '1',

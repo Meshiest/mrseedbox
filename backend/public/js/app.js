@@ -1,3 +1,5 @@
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 const { HashRouter, Route, Switch } = ReactRouterDOM;
 
 const teal500 = '#00897B';
@@ -104,6 +106,52 @@ function $closeModal(e) {
 function $openModal(component) {
   $('#modal').css('display', 'block');
   ReactDOM.render(component, $('#modal')[0]);
+}
+
+function $confirmModal(title, text) {
+  return new Promise((resolve, reject) => {
+    $openModal(React.createElement(
+      Modal,
+      { title: title, onClose: e => {
+          $closeModal();
+          reject();
+        } },
+      React.createElement(
+        Padding,
+        { style: { display: 'flex', flexDirection: 'column' } },
+        React.createElement(
+          Padding,
+          null,
+          text
+        ),
+        React.createElement(
+          'div',
+          { style: { display: 'flex', justifyContent: 'flex-end', padding: '4px' } },
+          React.createElement(
+            'button',
+            { type: 'submit',
+              style: { fontSize: '16px', padding: '8px' },
+              onClick: e => {
+                $closeModal();
+                reject();
+              } },
+            'No'
+          ),
+          React.createElement(
+            'button',
+            { type: 'submit',
+              className: 'primary',
+              style: { fontSize: '16px', padding: '8px' },
+              onClick: e => {
+                $closeModal();
+                resolve();
+              } },
+            'Yes'
+          )
+        )
+      )
+    ));
+  });
 }
 
 /*
@@ -588,6 +636,7 @@ class Feeds extends React.Component {
     };
 
     this.getFeeds = this.getFeeds.bind(this);
+    this.showFeedModal = this.showFeedModal.bind(this);
   }
 
   componentDidMount() {
@@ -618,6 +667,76 @@ class Feeds extends React.Component {
     });
   }
 
+  showFeedModal(add, feed) {
+    return e => {
+      // I'm so stupid for making my api inconsistent
+      feed = feed ? { name: feed.name, url: feed.uri, duration: feed.update_duration, id: feed.id } : { name: '', url: '', duration: '' };
+      $openModal(React.createElement(
+        Modal,
+        { title: (add ? 'Add' : 'Edit') + ' Feed', onClose: $closeModal },
+        React.createElement(
+          Padding,
+          null,
+          React.createElement(
+            'form',
+            {
+              style: {
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'stretch'
+              },
+              onSubmit: e => {
+                e.preventDefault();
+                if (!e.target.checkValidity()) return;
+
+                let data = {
+                  name: e.target.name.value,
+                  url: e.target.url.value,
+                  duration: e.target.duration.value
+                };
+
+                let xhr;
+
+                if (add) xhr = $.ajax({ url: 'api/feeds', method: 'POST', data });else xhr = $.ajax({ url: 'api/feeds/' + feed.id, method: 'PUT', data });
+
+                $closeModal();
+
+                xhr.then(this.getFeeds, $handleError);
+              } },
+            React.createElement(Input, { name: 'name', margin: true,
+              type: 'text',
+              placeholder: 'Feed Name',
+              defaultValue: feed.name,
+              required: true }),
+            React.createElement(Input, { name: 'url', margin: true,
+              type: 'text',
+              defaultValue: feed.url,
+              placeholder: 'Feed Url',
+              required: true }),
+            React.createElement(Input, { name: 'duration', margin: true,
+              type: 'number',
+              defaultValue: feed.duration,
+              min: '15',
+              step: '1',
+              placeholder: 'Feed Duration',
+              required: true }),
+            React.createElement(
+              'div',
+              { style: { display: 'flex', justifyContent: 'flex-end' } },
+              React.createElement(
+                'button',
+                { type: 'submit',
+                  className: 'primary',
+                  style: { fontSize: '16px', padding: '8px', color: primaryBgColor } },
+                add ? 'CREATE' : 'EDIT'
+              )
+            )
+          )
+        )
+      ));
+    };
+  }
+
   render() {
     return React.createElement(
       Card,
@@ -625,13 +744,7 @@ class Feeds extends React.Component {
       React.createElement(
         CardHeader,
         { title: 'Feeds' },
-        $level(PERMISSIONS.EDIT_FEED, React.createElement(IconButton, { icon: 'playlist_add', onClick: e => {
-            $openModal(React.createElement(
-              Modal,
-              { title: 'Add Feed', onClose: $closeModal },
-              'Hello'
-            ));
-          } })),
+        $level(PERMISSIONS.EDIT_FEED, React.createElement(IconButton, { icon: 'playlist_add', onClick: this.showFeedModal(true) })),
         React.createElement(IconButton, { icon: 'refresh', onClick: this.getFeeds })
       ),
       React.createElement(
@@ -640,6 +753,7 @@ class Feeds extends React.Component {
         this.state.feeds.map(f => React.createElement(Feed, { feed: f, key: f.id,
           listeners: this.state.listeners,
           refresh: this.getFeeds,
+          showFeedModal: this.showFeedModal,
           subscriptions: this.state.subscriptions }))
       )
     );
@@ -697,7 +811,7 @@ class Feed extends React.Component {
         $level(PERMISSIONS.EDIT_FEED, React.createElement(
           'div',
           { style: { display: 'flex' } },
-          React.createElement(IconButton, { icon: 'create' }),
+          React.createElement(IconButton, { icon: 'create', onClick: this.props.showFeedModal(false, feed) }),
           React.createElement(IconButton, { icon: 'delete' })
         ))
       ),
@@ -929,21 +1043,20 @@ class AddButton extends React.Component {
             display: 'flex',
             flexDirection: 'row'
           } },
-        React.createElement('input', { name: 'field',
-          type: 'text',
-          placeholder: this.props.placeholder,
-          style: {
-            outline: 'none',
-            padding: '8px',
-            border: 'none',
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.6)'
-          } }),
+        React.createElement(Input, { placeholder: this.props.placeholder, pattern: this.props.pattern, name: 'field' }),
         React.createElement(IconButton, { icon: this.props.icon || "add", submit: true })
       )),
       $if(!this.state.show, React.createElement(IconButton, { icon: this.props.icon || "add", onClick: () => this.setState({ show: true }) }))
     );
   }
 }
+
+let Input = props => React.createElement('input', _extends({
+  className: 'input ' + (props.className || ''),
+  style: {
+    margin: $hasProp(props, 'margin') ? '4px' : ''
+  }
+}, props));
 
 /*
   <Card
@@ -957,11 +1070,21 @@ let Card = props => React.createElement(
   'div',
   { style: {
       backgroundColor: cardBg,
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
+      // boxShadow: '0 2px 4px rgba(0, 0, 0, 0.4)',
       margin: '16px',
       flex: '1',
       maxWidth: $hasProp(props, 'nostretch') ? props.nostretch || 'auto' : 'calc(100vw - 32px)'
     } },
+  props.children
+);
+
+/*
+  Padding for layout
+    <Padding> ... </Padding>
+*/
+let Padding = props => React.createElement(
+  'div',
+  _extends({ style: { padding: '16px' } }, props),
   props.children
 );
 
@@ -976,40 +1099,27 @@ let Card = props => React.createElement(
 let Modal = props => React.createElement(
   'div',
   { style: {
+      alignItems: 'center',
+      display: 'flex',
       height: '100vh',
+      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+      justifyContent: 'center',
       left: '0',
       top: '0',
       width: '100vw'
+    }, 'data-wall': true, onClick: e => {
+      if ($(e.target).attr('data-wall') && props.onClose) props.onClose(e);
     } },
   React.createElement(
-    'div',
-    { style: {
-        alignItems: 'center',
-        display: 'flex',
-        justifyContent: 'center',
-        height: '100vh',
-        width: '100vw'
-      } },
+    Card,
+    { nostretch: '300px', onClick: e => e.preventDefault(), style: { zIndex: '5' } },
     React.createElement(
-      Card,
-      { nostretch: '300px' },
-      React.createElement(
-        CardHeader,
-        { title: props.title },
-        React.createElement(IconButton, { icon: 'close', onClick: props.onClose })
-      ),
-      props.children
-    )
-  ),
-  React.createElement('div', { onClick: props.onClose, style: {
-      backgroundColor: 'rgba(0, 0, 0, 0.3)',
-      height: '100vh',
-      left: '0',
-      position: 'fixed',
-      top: '0',
-      width: '100%',
-      zIndex: '-5'
-    } })
+      CardHeader,
+      { title: props.title },
+      $if(props.onClose, React.createElement(IconButton, { icon: 'close', onClick: props.onClose }))
+    ),
+    props.children
+  )
 );
 
 /*
@@ -1026,7 +1136,7 @@ let CardHeader = props => React.createElement(
       display: 'flex',
       height: '48px',
       paddingLeft: '16px',
-      paddingRight: '16px'
+      paddingRight: '8px'
     } },
   React.createElement(
     'h2',
