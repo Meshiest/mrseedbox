@@ -121,7 +121,7 @@ function $confirmModal(title, text) {
         <Padding>
           {text}
         </Padding>
-        <div style={{display: 'flex', justifyContent: 'flex-end', padding: '4px'}}>
+        <div style={{display: 'flex', justifyContent: 'flex-end', padding: '16px'}}>
           <button type="submit"
             style={{fontSize: '16px', padding: '8px'}}
             onClick={e => {
@@ -627,6 +627,7 @@ class Feeds extends React.Component {
 
     this.getFeeds = this.getFeeds.bind(this);
     this.showFeedModal = this.showFeedModal.bind(this);
+    this.showListenerModal = this.showListenerModal.bind(this);
   }
 
   componentDidMount() {
@@ -717,13 +718,71 @@ class Feeds extends React.Component {
               step="1"
               placeholder="Feed Duration"
               required={true}/>
-              <div style={{display: 'flex', justifyContent: 'flex-end'}}>
-                <button type="submit"
-                  className="primary"
-                  style={{fontSize: '16px', padding: '8px', color: primaryBgColor}}>
-                    {add ? 'CREATE' : 'EDIT'}
-                </button>
-              </div>
+            <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+              <button type="submit"
+                className="primary"
+                style={{fontSize: '16px', padding: '8px'}}>
+                  {add ? 'CREATE' : 'EDIT'}
+              </button>
+            </div>
+          </form>
+        </Padding>
+      </Modal>);
+    }
+  }
+
+  showListenerModal(add, feed, listener) {
+    return e => {
+      // I'm so stupid for making my api inconsistent
+      listener = listener || {name: '', pattern: ''};
+      $openModal(<Modal title={(add ? 'Add' : 'Edit') + ' Listener'} onClose={$closeModal}>
+        <Padding>
+          <form
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch',
+            }}
+            onSubmit={e => {
+              e.preventDefault();
+              if(!e.target.checkValidity())
+                return;
+
+              let data = {
+                feed_id: feed.id,
+                name: e.target.name.value,
+                pattern: e.target.pattern.value,
+              }
+
+              let xhr;
+
+              if(add)
+                xhr = $.ajax({url: 'api/listeners', method: 'POST', data});
+              else
+                xhr = $.ajax({url: 'api/listeners/' + listener.id, method: 'PUT', data});
+
+              $closeModal();
+
+              xhr.then(this.getFeeds, $handleError);
+
+            }}>
+            <Input name="name" margin
+              type="text"
+              placeholder="Listener Name"
+              defaultValue={listener.name}
+              required={true}/>
+            <Input name="pattern" margin
+              type="text"
+              defaultValue={listener.pattern}
+              placeholder="Listener Pattern"
+              required={true}/>
+            <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+              <button type="submit"
+                className="primary"
+                style={{fontSize: '16px', padding: '8px'}}>
+                  {add ? 'CREATE' : 'EDIT'}
+              </button>
+            </div>
           </form>
         </Padding>
       </Modal>);
@@ -735,7 +794,7 @@ class Feeds extends React.Component {
       <Card>
         <CardHeader title="Feeds">
           {$level(PERMISSIONS.EDIT_FEED,
-            <IconButton icon="playlist_add" onClick={this.showFeedModal(true)}/>
+            <IconButton icon="add" onClick={this.showFeedModal(true)}/>
           )}
           <IconButton icon="refresh" onClick={this.getFeeds}/>
         </CardHeader>
@@ -745,6 +804,7 @@ class Feeds extends React.Component {
               listeners={this.state.listeners}
               refresh={this.getFeeds}
               showFeedModal={this.showFeedModal}
+              showListenerModal={this.showListenerModal}
               subscriptions={this.state.subscriptions}/>)}
         </div>
       </Card>
@@ -786,10 +846,20 @@ class Feed extends React.Component {
               <Overflow>{feed.uri}</Overflow>
             </subhead>
           </div>
+          {$level(PERMISSIONS.EDIT_LISTENER,
+            <div style={{display: 'flex'}}>
+              <IconButton icon="playlist_add" onClick={this.props.showListenerModal(true, feed)}/>
+            </div>
+          )}
           {$level(PERMISSIONS.EDIT_FEED,
             <div style={{display: 'flex'}}>
               <IconButton icon="create" onClick={this.props.showFeedModal(false, feed)}/>
-              <IconButton icon="delete"/>
+              <IconButton icon="delete" onClick={e => {
+                $confirmModal('Delete Feed', `Are you sure you want to delete feed "${feed.name}"?`)
+                  .then(() => {
+                    $.ajax({method: 'delete', url: '/api/feeds/' + feed.id}).then(this.props.refresh, $handleError);
+                  });
+              }}/>
             </div>
           )}
         </div>
@@ -799,7 +869,14 @@ class Feed extends React.Component {
                 alignItems: 'center',
                 display: 'flex',
               }}>
-              <IconButton icon={this.props.subscriptions[l.id] ? 'star' : 'star_border'}/>
+              <IconButton icon={this.props.subscriptions[l.id] ? 'star' : 'star_border'}
+                onClick={e =>
+                  $.ajax({
+                    url: 'api/user/listeners' + (this.props.subscriptions[l.id] ? '/' + l.id : ''),
+                    method: (this.props.subscriptions[l.id] ? 'delete' : 'post'),
+                    data: {listener_id: l.id},
+                  }).then(this.props.refresh, $handleError)
+                }/>
               <div style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -838,6 +915,17 @@ class Feed extends React.Component {
                   {l.subscribers} Subscribers
                 </div>
               </div>
+              {$level(PERMISSIONS.EDIT_LISTENER,
+                <div style={{display: 'flex'}}>
+                  <IconButton icon="create" onClick={this.props.showListenerModal(false, feed, l)}/>
+                  <IconButton icon="delete" onClick={e => {
+                    $confirmModal('Delete Listener', `Are you sure you want to delete listener "${l.name}"?`)
+                      .then(() => {
+                        $.ajax({method: 'delete', url: '/api/listeners/' + l.id}).then(this.props.refresh, $handleError);
+                      });
+                  }}/>
+                </div>
+              )}
             </div>
           )}
         </div>

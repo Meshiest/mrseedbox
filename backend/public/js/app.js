@@ -126,7 +126,7 @@ function $confirmModal(title, text) {
         ),
         React.createElement(
           'div',
-          { style: { display: 'flex', justifyContent: 'flex-end', padding: '4px' } },
+          { style: { display: 'flex', justifyContent: 'flex-end', padding: '16px' } },
           React.createElement(
             'button',
             { type: 'submit',
@@ -637,6 +637,7 @@ class Feeds extends React.Component {
 
     this.getFeeds = this.getFeeds.bind(this);
     this.showFeedModal = this.showFeedModal.bind(this);
+    this.showListenerModal = this.showListenerModal.bind(this);
   }
 
   componentDidMount() {
@@ -727,7 +728,70 @@ class Feeds extends React.Component {
                 'button',
                 { type: 'submit',
                   className: 'primary',
-                  style: { fontSize: '16px', padding: '8px', color: primaryBgColor } },
+                  style: { fontSize: '16px', padding: '8px' } },
+                add ? 'CREATE' : 'EDIT'
+              )
+            )
+          )
+        )
+      ));
+    };
+  }
+
+  showListenerModal(add, feed, listener) {
+    return e => {
+      // I'm so stupid for making my api inconsistent
+      listener = listener || { name: '', pattern: '' };
+      $openModal(React.createElement(
+        Modal,
+        { title: (add ? 'Add' : 'Edit') + ' Listener', onClose: $closeModal },
+        React.createElement(
+          Padding,
+          null,
+          React.createElement(
+            'form',
+            {
+              style: {
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'stretch'
+              },
+              onSubmit: e => {
+                e.preventDefault();
+                if (!e.target.checkValidity()) return;
+
+                let data = {
+                  feed_id: feed.id,
+                  name: e.target.name.value,
+                  pattern: e.target.pattern.value
+                };
+
+                let xhr;
+
+                if (add) xhr = $.ajax({ url: 'api/listeners', method: 'POST', data });else xhr = $.ajax({ url: 'api/listeners/' + listener.id, method: 'PUT', data });
+
+                $closeModal();
+
+                xhr.then(this.getFeeds, $handleError);
+              } },
+            React.createElement(Input, { name: 'name', margin: true,
+              type: 'text',
+              placeholder: 'Listener Name',
+              defaultValue: listener.name,
+              required: true }),
+            React.createElement(Input, { name: 'pattern', margin: true,
+              type: 'text',
+              defaultValue: listener.pattern,
+              placeholder: 'Listener Pattern',
+              required: true }),
+            React.createElement(
+              'div',
+              { style: { display: 'flex', justifyContent: 'flex-end' } },
+              React.createElement(
+                'button',
+                { type: 'submit',
+                  className: 'primary',
+                  style: { fontSize: '16px', padding: '8px' } },
                 add ? 'CREATE' : 'EDIT'
               )
             )
@@ -744,7 +808,7 @@ class Feeds extends React.Component {
       React.createElement(
         CardHeader,
         { title: 'Feeds' },
-        $level(PERMISSIONS.EDIT_FEED, React.createElement(IconButton, { icon: 'playlist_add', onClick: this.showFeedModal(true) })),
+        $level(PERMISSIONS.EDIT_FEED, React.createElement(IconButton, { icon: 'add', onClick: this.showFeedModal(true) })),
         React.createElement(IconButton, { icon: 'refresh', onClick: this.getFeeds })
       ),
       React.createElement(
@@ -754,6 +818,7 @@ class Feeds extends React.Component {
           listeners: this.state.listeners,
           refresh: this.getFeeds,
           showFeedModal: this.showFeedModal,
+          showListenerModal: this.showListenerModal,
           subscriptions: this.state.subscriptions }))
       )
     );
@@ -808,11 +873,20 @@ class Feed extends React.Component {
             )
           )
         ),
+        $level(PERMISSIONS.EDIT_LISTENER, React.createElement(
+          'div',
+          { style: { display: 'flex' } },
+          React.createElement(IconButton, { icon: 'playlist_add', onClick: this.props.showListenerModal(true, feed) })
+        )),
         $level(PERMISSIONS.EDIT_FEED, React.createElement(
           'div',
           { style: { display: 'flex' } },
           React.createElement(IconButton, { icon: 'create', onClick: this.props.showFeedModal(false, feed) }),
-          React.createElement(IconButton, { icon: 'delete' })
+          React.createElement(IconButton, { icon: 'delete', onClick: e => {
+              $confirmModal('Delete Feed', `Are you sure you want to delete feed "${feed.name}"?`).then(() => {
+                $.ajax({ method: 'delete', url: '/api/feeds/' + feed.id }).then(this.props.refresh, $handleError);
+              });
+            } })
         ))
       ),
       React.createElement(
@@ -824,7 +898,12 @@ class Feed extends React.Component {
               alignItems: 'center',
               display: 'flex'
             } },
-          React.createElement(IconButton, { icon: this.props.subscriptions[l.id] ? 'star' : 'star_border' }),
+          React.createElement(IconButton, { icon: this.props.subscriptions[l.id] ? 'star' : 'star_border',
+            onClick: e => $.ajax({
+              url: 'api/user/listeners' + (this.props.subscriptions[l.id] ? '/' + l.id : ''),
+              method: this.props.subscriptions[l.id] ? 'delete' : 'post',
+              data: { listener_id: l.id }
+            }).then(this.props.refresh, $handleError) }),
           React.createElement(
             'div',
             { style: {
@@ -881,7 +960,17 @@ class Feed extends React.Component {
               l.subscribers,
               ' Subscribers'
             )
-          )
+          ),
+          $level(PERMISSIONS.EDIT_LISTENER, React.createElement(
+            'div',
+            { style: { display: 'flex' } },
+            React.createElement(IconButton, { icon: 'create', onClick: this.props.showListenerModal(false, feed, l) }),
+            React.createElement(IconButton, { icon: 'delete', onClick: e => {
+                $confirmModal('Delete Listener', `Are you sure you want to delete listener "${l.name}"?`).then(() => {
+                  $.ajax({ method: 'delete', url: '/api/listeners/' + l.id }).then(this.props.refresh, $handleError);
+                });
+              } })
+          ))
         ))
       )
     );
