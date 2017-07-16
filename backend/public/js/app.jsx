@@ -267,8 +267,10 @@ class Dashboard extends React.Component {
     super(props);
 
     let user = {
-      name: 'Friend',
-      email: 'n/a',
+      name: user_name,
+      id: user_id,
+      level: user_level,
+      email: user_email,
     };
     
     let welcome = this.getWelcome();
@@ -288,15 +290,6 @@ class Dashboard extends React.Component {
       this.setState({welcome: this.getWelcome()});
       this.updateListeners();
     }, 15 * 60 * 1000);
-
-    $.ajax({
-      url: '/api/users'
-    }).then(resp => {
-      let users = {};
-      resp.forEach(u => users[u.id] = u);
-      this.setState({user: users[user_id]});
-    }, $handleError);
-
   }
 
   updateListeners() {
@@ -694,6 +687,7 @@ class Users extends React.Component {
             <Input name="email" margin
               type="text"
               defaultValue={user.email}
+              hidden={user_level < PERMISSIONS.EDIT_USER}
               placeholder="User Email"
               required={true}/>
             <select name="level"
@@ -767,7 +761,7 @@ let User = props => {
             <Overflow>{user.email}</Overflow>
           </subhead>
         </div>
-        {$level(PERMISSIONS.EDIT_USER || user.id === user_id,
+        {$if(PERMISSIONS.EDIT_USER <= user_level || user.id === user_id,
           <div style={{display: 'flex'}}>
             <IconButton icon="create" onClick={props.showUserModal(false, user)}/>
           </div>

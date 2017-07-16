@@ -13,7 +13,9 @@
     <div id="modal" style="position:fixed;top:0;left:0;display:none;"></div>
     <script>
       window.user_id = <%= @user['id'] %>;
+      window.user_name = '<%= @user['name'] %>';
       window.user_level = <%= @user['level'] %>;
+      window.user_email = '<%= @user['email'] %>';
     </script>
     <script src="js/jquery.min.js"></script>
     <script src="js/react.min.js"></script>
