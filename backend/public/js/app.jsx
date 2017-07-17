@@ -259,6 +259,7 @@ class Seedbox extends React.Component {
   }
 };
 
+// Welcome and some subscriptions
 class Home extends React.Component {
   constructor(props) {
     super(props);
@@ -421,6 +422,7 @@ class Dashboard extends React.Component {
   }
 }
 
+// List of chips for a popup
 class Subscriptions extends React.Component {
   constructor(props) {
     super(props);
@@ -492,6 +494,7 @@ class Subscriptions extends React.Component {
   }
 }
 
+// Chat window for a popup
 class Chat extends React.Component {
   constructor(props) {
     super(props);
@@ -597,6 +600,7 @@ class Chat extends React.Component {
   }
 }
 
+// MyAnimeList popup content
 class Animelist extends React.Component {
   constructor(props) {
     super(props);
@@ -611,7 +615,7 @@ class Animelist extends React.Component {
     return this.state.ready ? (
       <iframe style={{
           border: 'none',
-          flex: '1',
+          height: '300px',
         }}
         src={'https://myanimelist.net/animelist/' + this.state.username}/>
     ) : (
@@ -624,6 +628,7 @@ class Animelist extends React.Component {
         }}>
         <form onSubmit={e => {
             e.preventDefault();
+            localStorage.MALName = e.target.username.value;
             this.setState({username: e.target.username.value, ready: true});
           }}>
           <Input name="username"
@@ -633,7 +638,6 @@ class Animelist extends React.Component {
         <a style={{
             fontSize: '12px',
             fontStyle: 'italic',
-            textDecoration: 'none',
             marginTop: '8px',
           }}
           target="_blank" 
