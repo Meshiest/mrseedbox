@@ -226,9 +226,13 @@ class Seedbox extends React.Component {
           React.createElement(PopupButton, { title: 'Animelist',
             icon: 'list',
             id: 'popup-animelist' }),
-          React.createElement(PopupButton, { title: 'Chat',
-            icon: 'chat',
-            id: 'popup-chat' }),
+          React.createElement(
+            PopupButton,
+            { title: 'Chat',
+              icon: 'chat',
+              id: 'popup-chat' },
+            React.createElement(Chat, null)
+          ),
           React.createElement(
             PopupButton,
             { title: 'Subscriptions',
@@ -423,7 +427,7 @@ class Dashboard extends React.Component {
   }
 }
 
-class Subscriptions extends Dashboard {
+class Subscriptions extends React.Component {
   constructor(props) {
     super(props);
 
@@ -501,6 +505,123 @@ class Subscriptions extends Dashboard {
           this.state.listeners[s.listener_id].name
         );
       })
+    );
+  }
+}
+
+class Chat extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      messages: []
+    };
+
+    this.updateMessages = this.updateMessages.bind(this);
+    this.updateMessages();
+
+    this.updateInterval = setInterval(() => {
+      this.updateMessages();
+    }, 1000);
+  }
+
+  updateMessages() {
+    $.ajax({
+      url: '/api/messages'
+    }).then(messages => this.setState({ messages }), $handleError);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.updateInterval);
+  }
+
+  render() {
+    return React.createElement(
+      'div',
+      { style: {
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch'
+        } },
+      React.createElement(
+        'form',
+        { style: {
+            display: 'flex',
+            flexDirection: 'row'
+          }, onSubmit: e => {
+            e.preventDefault();
+            $.ajax({
+              url: '/api/messages',
+              method: 'post',
+              data: {
+                msg: e.target.message.value
+              }
+            }).then(this.updateMessages, $handleError);
+            e.target.message.value = '';
+          } },
+        React.createElement(Input, { name: 'message',
+          autocomplete: 'off',
+          style: { flex: '1' },
+          placeholder: 'Message' })
+      ),
+      React.createElement(
+        'div',
+        { style: { overflowY: 'auto', maxHeight: '200px', backgroundColor: bgColor } },
+        this.state.messages.map(m => m.user_id === user_id ? React.createElement(
+          'div',
+          { style: {
+              borderRadius: '4px',
+              backgroundColor: '#B2DFDB',
+              padding: '4px',
+              margin: '4px',
+              marginLeft: '16px'
+            } },
+          React.createElement(
+            'div',
+            null,
+            m.message
+          ),
+          React.createElement(
+            'div',
+            { style: {
+                color: subheaderColor,
+                fontSize: '10px',
+                textAlign: 'right'
+              } },
+            $ago(m.time)
+          )
+        ) : React.createElement(
+          'div',
+          { style: {
+              borderRadius: '4px',
+              backgroundColor: cardBg,
+              padding: '4px',
+              margin: '4px',
+              marginRight: '16px'
+            } },
+          React.createElement(
+            'div',
+            { style: {
+                fontWeight: 'bold'
+              } },
+            m.name || `[deleted #${m.user_id}]`
+          ),
+          React.createElement(
+            'div',
+            null,
+            m.message
+          ),
+          React.createElement(
+            'div',
+            { style: {
+                color: subheaderColor,
+                fontSize: '10px',
+                textAlign: 'right'
+              } },
+            $ago(m.time)
+          )
+        ))
+      )
     );
   }
 }
@@ -585,7 +706,10 @@ class Torrents extends React.Component {
           onSubmit: result => {
             $.ajax({
               method: 'post',
-              url: '/api/torrents?url=' + result
+              url: '/api/torrents',
+              data: {
+                url: result
+              }
             }).then(resp => {
               this.getTorrents();
             }, $handleError);
@@ -1458,6 +1582,7 @@ class PopupButton extends React.Component {
 
   open(event) {
     this.setState({ open: true });
+
     let { id, title, children } = this.props;
     $(`<div id="${id}"/>`).dialog({
       resizable: false,

@@ -483,7 +483,7 @@ class Server < Sinatra::Base
       }.to_json
     else 
       status 200
-      result = mysql.query("SELECT * FROM messages ORDER BY time DESC LIMIT 30;")
+      result = mysql.query("SELECT *, (SELECT name FROM users WHERE id=user_id) as name FROM messages ORDER BY time DESC LIMIT 30;")
       messages = []
       result.each do |message|
         messages << message

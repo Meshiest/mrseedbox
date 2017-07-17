@@ -231,6 +231,7 @@ class Seedbox extends React.Component {
             <PopupButton title="Chat"
               icon="chat"
               id="popup-chat">
+              <Chat/>
             </PopupButton>
             <PopupButton title="Subscriptions"
               icon="stars"
@@ -421,7 +422,7 @@ class Dashboard extends React.Component {
   }
 }
 
-class Subscriptions extends Dashboard {
+class Subscriptions extends React.Component {
   constructor(props) {
     super(props);
     
@@ -489,6 +490,111 @@ class Subscriptions extends Dashboard {
           </Chip>
         })}
       </Padding>
+    );
+  }
+}
+
+class Chat extends React.Component {
+  constructor(props) {
+    super(props);
+    
+    this.state = {
+      messages: [],
+    };
+
+    this.updateMessages = this.updateMessages.bind(this);
+    this.updateMessages();
+
+    this.updateInterval = setInterval(() => {
+      this.updateMessages();
+    }, 1000);
+  }
+
+  updateMessages() {
+    $.ajax({
+      url: '/api/messages',
+    }).then(messages => this.setState({messages}), $handleError);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.updateInterval);
+  }
+
+  render() {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+      }}>
+        <form style={{
+            display: 'flex',
+            flexDirection: 'row',
+          }} onSubmit={e => {
+            e.preventDefault();
+            $.ajax({
+              url: '/api/messages',
+              method: 'post',
+              data: {
+                msg: e.target.message.value
+              }
+            }).then(this.updateMessages, $handleError);
+            e.target.message.value = '';
+          }}>
+          <Input name="message"
+            autocomplete="off"
+            style={{flex: '1'}}
+            placeholder="Message"/>
+        </form>
+        <div style={{overflowY: 'auto', maxHeight: '200px', backgroundColor: bgColor}}>
+          {this.state.messages.map(m => (
+            m.user_id === user_id ? (
+              <div style={{
+                  borderRadius: '4px', 
+                  backgroundColor: '#B2DFDB',
+                  padding: '4px',
+                  margin: '4px',
+                  marginLeft: '16px',
+                }}>
+                <div>
+                  {m.message}
+                </div>
+                <div style={{
+                    color: subheaderColor,
+                    fontSize: '10px',
+                    textAlign: 'right',
+                  }}>
+                  {$ago(m.time)}
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                  borderRadius: '4px', 
+                  backgroundColor: cardBg,
+                  padding: '4px',
+                  margin: '4px',
+                  marginRight: '16px',
+                }}>
+                <div style={{
+                    fontWeight: 'bold'
+                  }}>
+                  {m.name || `[deleted #${m.user_id}]`}
+                </div>
+                <div>
+                  {m.message}
+                </div>
+                <div style={{
+                    color: subheaderColor,
+                    fontSize: '10px',
+                    textAlign: 'right',
+                  }}>
+                  {$ago(m.time)}
+                </div>
+              </div>
+            )
+          ))}
+        </div>
+      </div>
     );
   }
 }
@@ -582,7 +688,10 @@ class Torrents extends React.Component {
               onSubmit={result => {
                 $.ajax({
                   method: 'post',
-                  url: '/api/torrents?url=' + result
+                  url: '/api/torrents',
+                  data: {
+                    url: result
+                  }
                 }).then(
                   resp => {
                     this.getTorrents();
@@ -1355,6 +1464,7 @@ class PopupButton extends React.Component {
 
   open(event) {
     this.setState({open: true});
+
     let { id, title, children } = this.props;
     $(`<div id="${id}"/>`).dialog({
       resizable: false,
