@@ -463,7 +463,11 @@ class Subscriptions extends React.Component {
 
   render() {
     return (
-      <Padding>
+      <div style={{
+          padding: '16px',
+          maxHeight: '300px',
+          overflowY: 'auto',
+        }}>
         {$if(!this.state.subscriptions.length, (
           <h2 style={{
             alignItems: 'center',
@@ -489,7 +493,7 @@ class Subscriptions extends React.Component {
             {this.state.listeners[s.listener_id].name}
           </Chip>
         })}
-      </Padding>
+      </div>
     );
   }
 }
