@@ -227,6 +227,7 @@ class Seedbox extends React.Component {
             <PopupButton title="Animelist"
               icon="list"
               id="popup-animelist">
+              <Animelist/>
             </PopupButton>
             <PopupButton title="Chat"
               icon="chat"
@@ -362,7 +363,6 @@ class Dashboard extends React.Component {
           justifyContent: 'center',
         }}>
         <h2 style={{
-            fontWeight: 400,
             marginTop: '16px',
           }}>
           {welcome}, {user.name}
@@ -383,7 +383,6 @@ class Dashboard extends React.Component {
             justifyContent: 'center',
           }}>
             <h2 style={{
-              fontWeight: 400,
               marginBottom: '8px',
               marginTop: '16px',
             }}>
@@ -469,7 +468,6 @@ class Subscriptions extends React.Component {
             color: subheaderColor,
             display: 'flex',
             flexDirection: 'column',
-            fontWeight: '400',
             justifyContent: 'center',
             marginTop: '20px',
           }}>
@@ -594,6 +592,54 @@ class Chat extends React.Component {
             )
           ))}
         </div>
+      </div>
+    );
+  }
+}
+
+class Animelist extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      username: localStorage.MALName || '',
+      ready: false,
+    };
+  }
+
+  render() {
+    return this.state.ready ? (
+      <iframe style={{
+          border: 'none',
+          flex: '1',
+        }}
+        src={'https://myanimelist.net/animelist/' + this.state.username}/>
+    ) : (
+      <div style={{
+          alignItems: 'center',
+          display: 'flex',
+          padding: '16px',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}>
+        <form onSubmit={e => {
+            e.preventDefault();
+            this.setState({username: e.target.username.value, ready: true});
+          }}>
+          <Input name="username"
+            placeholder="MAL Username"
+            defaultValue={this.state.username}/>
+        </form>
+        <a style={{
+            fontSize: '12px',
+            fontStyle: 'italic',
+            textDecoration: 'none',
+            marginTop: '8px',
+          }}
+          target="_blank" 
+          href="https://gist.github.com/Meshiest/cf3a3a4e16f5669ce7540445bf5b4cbf">
+          It's recommended to use this style
+        </a>
       </div>
     );
   }
@@ -1192,9 +1238,7 @@ let Feed = props => {
       }}>
       <div style={{display: 'flex'}}>
         <div style={{flex: '1'}}>
-          <h2 style={{
-              fontWeight: '400',
-            }}>
+          <h2>
             {feed.name}
             <span style={{fontSize: '14px'}}>
               &nbsp;by {feed.creator_name}
@@ -1333,7 +1377,6 @@ let Toolbar = props =>(
   }}>
     <h2 style={{
         cursor: 'pointer',
-        fontWeight: '400',
       }}
       className="toolbar-title"
       onClick={()=>location.hash="#/"}>
@@ -1466,7 +1509,7 @@ class PopupButton extends React.Component {
     this.setState({open: true});
 
     let { id, title, children } = this.props;
-    $(`<div id="${id}"/>`).dialog({
+    $(`<div id="${id}" style="display:flex;flex-direction:column;"/>`).dialog({
       resizable: false,
       title: title,
       open(e) {
@@ -1568,7 +1611,6 @@ let CardHeader = props => (
     }}>
     <h2 style={{
         flex: '1',
-        fontWeight: 400,
       }}>
       {props.title}
     </h2>

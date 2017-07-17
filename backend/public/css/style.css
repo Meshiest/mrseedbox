@@ -67,6 +67,11 @@ button {
   padding: 4px;
 }
 
+h2 {
+  font-weight: 400;
+}
+
+
 .chip {
   background-color: #E0E0E0;
   margin: 4px;
