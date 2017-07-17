@@ -108,6 +108,9 @@ function $openModal(component) {
   ReactDOM.render(component, $('#modal')[0]);
 }
 
+/*
+  Promise - Opens a modal with given title and text with "yes" and "no" buttons
+*/
 function $confirmModal(title, text) {
   return new Promise((resolve, reject) => {
     $openModal(React.createElement(
@@ -220,9 +223,19 @@ class Seedbox extends React.Component {
         React.createElement(
           HeaderRow,
           null,
-          React.createElement(IconButton, { primary: true, icon: 'list' }),
-          React.createElement(IconButton, { primary: true, icon: 'chat' }),
-          React.createElement(IconButton, { primary: true, icon: 'stars' })
+          React.createElement(PopupButton, { title: 'Animelist',
+            icon: 'list',
+            id: 'popup-animelist' }),
+          React.createElement(PopupButton, { title: 'Chat',
+            icon: 'chat',
+            id: 'popup-chat' }),
+          React.createElement(
+            PopupButton,
+            { title: 'Subscriptions',
+              icon: 'stars',
+              id: 'popup-subscriptions' },
+            React.createElement(Subscriptions, null)
+          )
         )
       ),
       React.createElement(
@@ -277,9 +290,8 @@ class Dashboard extends React.Component {
       subscriptions: []
     };
 
-    this.updateListeners();
-
     this.updateListeners = this.updateListeners.bind(this);
+    this.updateListeners();
 
     // get a new welcome every minute or so
     this.welcomeInterval = setInterval(() => {
@@ -378,10 +390,108 @@ class Dashboard extends React.Component {
             } },
           'You Have New Updates'
         ),
-        this.state.subscriptions.map(s => React.createElement(
+        React.createElement(
+          'div',
+          { style: {
+              display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              maxWidth: '300px',
+              alignItems: 'center',
+              justifyContent: 'center'
+            } },
+          this.state.subscriptions.map(s => React.createElement(
+            Chip,
+            { primary: true, icon: 'visibility', key: s.listener_id, onClick: e => {
+                let time = Math.floor(Date.now() / 1000);
+                $.ajax({
+                  url: `/api/user/listeners/${s.listener_id}`,
+                  method: 'PUT',
+                  data: { time }
+                }).then(this.updateListeners, $handleError);
+              } },
+            this.state.listeners[s.listener_id].name
+          ))
+        )
+      )),
+      React.createElement(IconButton, { icon: 'exit_to_app', style: {
+          position: 'absolute',
+          right: '0',
+          top: '48px'
+        }, onClick: () => $.ajax('/logout').then(e => location.reload(), e => location.reload()) })
+    );
+  }
+}
+
+class Subscriptions extends Dashboard {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      subscriptions: [],
+      listeners: {}
+    };
+
+    this.updateListeners = this.updateListeners.bind(this);
+    this.updateListeners();
+
+    this.updateInterval = setInterval(() => {
+      this.updateListeners();
+    }, 5 * 60 * 1000);
+  }
+
+  updateListeners() {
+    $.ajax({
+      url: '/api/listeners'
+    }).then(arr => {
+      let listeners = {};
+      arr.forEach(l => listeners[l.id] = l);
+      $.ajax({
+        url: '/api/user/listeners'
+      }).then(subscriptions => {
+        subscriptions.forEach(s => {
+          s.unseen = typeof s.last_seen === 'undefined' || s.last_seen < listeners[s.listener_id].last_update;
+        });
+        this.setState({ subscriptions, listeners });
+      }, $handleError);
+    }, $handleError);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.updateInterval);
+  }
+
+  render() {
+    return React.createElement(
+      Padding,
+      null,
+      $if(!this.state.subscriptions.length, React.createElement(
+        'h2',
+        { style: {
+            alignItems: 'center',
+            color: subheaderColor,
+            display: 'flex',
+            flexDirection: 'column',
+            fontWeight: '400',
+            justifyContent: 'center',
+            marginTop: '20px'
+          } },
+        React.createElement(
+          'span',
+          null,
+          'No Subscriptions'
+        ),
+        React.createElement(
+          Icon,
+          null,
+          'mood_bad'
+        )
+      )),
+      this.state.subscriptions.sort((a, b) => (b.unseen ? 1 : 0) - (a.unseen ? 1 : 0)).map(s => {
+        return React.createElement(
           Chip,
-          { icon: 'visibility', key: s.listener_id, onClick: e => {
-              let time = Math.floor(Date.now() / 1000);
+          { primary: s.unseen, icon: 'visibility' + (s.unseen ? '' : '_off'), key: s.listener_id, onClick: e => {
+              let time = s.unseen ? Math.floor(Date.now() / 1000) : this.state.listeners[s.listener_id].last_update - 5;
               $.ajax({
                 url: `/api/user/listeners/${s.listener_id}`,
                 method: 'PUT',
@@ -389,13 +499,8 @@ class Dashboard extends React.Component {
               }).then(this.updateListeners, $handleError);
             } },
           this.state.listeners[s.listener_id].name
-        ))
-      )),
-      React.createElement(IconButton, { icon: 'exit_to_app', style: {
-          position: 'absolute',
-          right: '12px',
-          top: '56px'
-        }, onClick: () => $.ajax('/logout').then(e => location.reload(), e => location.reload()) })
+        );
+      })
     );
   }
 }
@@ -498,9 +603,7 @@ class Torrents extends React.Component {
             } },
           React.createElement(
             'thead',
-            { style: {
-                borderBottom: 'thin solid ' + subheaderColor
-              } },
+            null,
             React.createElement(Th, { onClick: () => this.reorder('name'),
               active: this.state.order === 'name',
               reverse: this.state.reverse,
@@ -1272,7 +1375,7 @@ let IconButton = props => React.createElement(
 */
 let Chip = props => React.createElement(
   'div',
-  { className: 'chip', onClick: props.onClick, style: {
+  { className: 'chip' + (props.primary ? ' primary' : ''), onClick: props.onClick, style: {
       alignItems: 'center',
       cursor: 'pointer',
       display: 'flex',
@@ -1281,7 +1384,11 @@ let Chip = props => React.createElement(
       paddingLeft: '8px',
       paddingRight: '8px'
     } },
-  props.children,
+  React.createElement(
+    'span',
+    { style: { flex: '1' } },
+    props.children
+  ),
   React.createElement(
     Icon,
     { style: { marginLeft: '4px' } },
@@ -1336,6 +1443,41 @@ class AddButton extends React.Component {
       )),
       $if(!this.state.show, React.createElement(IconButton, { icon: this.props.icon || "add", onClick: () => this.setState({ show: true }) }))
     );
+  }
+}
+
+class PopupButton extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      open: false
+    };
+    this.open = this.open.bind(this);
+  }
+
+  open(event) {
+    this.setState({ open: true });
+    let { id, title, children } = this.props;
+    $(`<div id="${id}"/>`).dialog({
+      resizable: false,
+      title: title,
+      open(e) {
+        ReactDOM.render(React.createElement(
+          'div',
+          null,
+          children
+        ), $('#' + id)[0]);
+      }
+    }).on('dialogclose', e => {
+      ReactDOM.unmountComponentAtNode($('#' + id)[0]);
+      $('#' + id).remove();
+      this.setState({ open: false });
+    });
+  }
+
+  render() {
+    return $if(!this.state.open, React.createElement(IconButton, { icon: this.props.icon, primary: true, onClick: this.open }));
   }
 }
 
@@ -1635,4 +1777,5 @@ let Flex = props => React.createElement(
   props.children
 );
 
+// Finally render our component
 ReactDOM.render(React.createElement(Seedbox, null), $('#root')[0]);

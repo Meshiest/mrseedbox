@@ -110,6 +110,9 @@ function $openModal(component) {
   ReactDOM.render(component, $('#modal')[0]);
 }
 
+/*
+  Promise - Opens a modal with given title and text with "yes" and "no" buttons
+*/
 function $confirmModal(title, text) {
   return new Promise((resolve, reject) => {  
     $openModal(
@@ -221,9 +224,19 @@ class Seedbox extends React.Component {
             )}
           </HeaderRow>
           <HeaderRow>
-            <IconButton primary icon="list"></IconButton>
-            <IconButton primary icon="chat"></IconButton>
-            <IconButton primary icon="stars"></IconButton>
+            <PopupButton title="Animelist"
+              icon="list"
+              id="popup-animelist">
+            </PopupButton>
+            <PopupButton title="Chat"
+              icon="chat"
+              id="popup-chat">
+            </PopupButton>
+            <PopupButton title="Subscriptions"
+              icon="stars"
+              id="popup-subscriptions">
+              <Subscriptions/>
+            </PopupButton>
           </HeaderRow>
         </Toolbar>
         <HashRouter>
@@ -281,10 +294,9 @@ class Dashboard extends React.Component {
       subscriptions: [],
     };
 
-    this.updateListeners();
-
     this.updateListeners = this.updateListeners.bind(this);
-
+    this.updateListeners();
+    
     // get a new welcome every minute or so
     this.welcomeInterval = setInterval(() => {
       this.setState({welcome: this.getWelcome()});
@@ -376,26 +388,107 @@ class Dashboard extends React.Component {
             }}>
               You Have New Updates
             </h2>
-            {this.state.subscriptions.map(s => 
-              <Chip icon="visibility" key={s.listener_id} onClick={e => {
-                  let time = Math.floor(Date.now()/1000);
-                  $.ajax({
-                    url: `/api/user/listeners/${s.listener_id}`,
-                    method: 'PUT',
-                    data: {time},
-                  }).then(this.updateListeners, $handleError);
-                }}>
-                {this.state.listeners[s.listener_id].name}
-              </Chip>
-            )}
+            <div style={{
+                display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                maxWidth: '300px',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              {this.state.subscriptions.map(s => 
+                <Chip primary={true} icon="visibility" key={s.listener_id} onClick={e => {
+                    let time = Math.floor(Date.now()/1000);
+                    $.ajax({
+                      url: `/api/user/listeners/${s.listener_id}`,
+                      method: 'PUT',
+                      data: {time},
+                    }).then(this.updateListeners, $handleError);
+                  }}>
+                  {this.state.listeners[s.listener_id].name}
+                </Chip>
+              )}
+            </div>
           </div>
         )}
         <IconButton icon="exit_to_app" style={{
           position: 'absolute',
-          right: '12px',
-          top: '56px',
+          right: '0',
+          top: '48px',
         }} onClick={() => $.ajax('/logout').then(e=>location.reload(), e=>location.reload())}/>
       </div>
+    );
+  }
+}
+
+class Subscriptions extends Dashboard {
+  constructor(props) {
+    super(props);
+    
+    this.state = {
+      subscriptions: [],
+      listeners: {},
+    };
+
+    this.updateListeners = this.updateListeners.bind(this);
+    this.updateListeners();
+
+    this.updateInterval = setInterval(() => {
+      this.updateListeners();
+    }, 5 * 60 * 1000);
+  }
+
+  updateListeners() {
+    $.ajax({
+      url: '/api/listeners'
+    }).then(arr => {
+      let listeners = {};
+      arr.forEach(l => listeners[l.id] = l);
+      $.ajax({
+        url: '/api/user/listeners'
+      }).then(subscriptions => {
+        subscriptions.forEach(s => {
+          s.unseen = typeof s.last_seen === 'undefined' || s.last_seen < listeners[s.listener_id].last_update;
+        });
+        this.setState({ subscriptions, listeners });
+      }, $handleError);
+    }, $handleError);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.updateInterval);
+  }
+
+  render() {
+    return (
+      <Padding>
+        {$if(!this.state.subscriptions.length, (
+          <h2 style={{
+            alignItems: 'center',
+            color: subheaderColor,
+            display: 'flex',
+            flexDirection: 'column',
+            fontWeight: '400',
+            justifyContent: 'center',
+            marginTop: '20px',
+          }}>
+            <span>No Subscriptions</span>
+            <Icon>mood_bad</Icon>
+          </h2>
+        ))}
+        {this.state.subscriptions.sort((a,b)=>(b.unseen ? 1 : 0) - (a.unseen ? 1 : 0)).map(s => {
+          return <Chip primary={s.unseen} icon={'visibility' + (s.unseen ? '' : '_off')} key={s.listener_id} onClick={e => {
+              let time = s.unseen ? Math.floor(Date.now()/1000) : this.state.listeners[s.listener_id].last_update - 5;
+              $.ajax({
+                url: `/api/user/listeners/${s.listener_id}`,
+                method: 'PUT',
+                data: {time},
+              }).then(this.updateListeners, $handleError);
+            }}>
+            {this.state.listeners[s.listener_id].name}
+          </Chip>
+        })}
+      </Padding>
     );
   }
 }
@@ -505,9 +598,7 @@ class Torrents extends React.Component {
               borderCollapse: 'collapse',
               width: '100%',
             }}>
-            <thead style={{
-                borderBottom: 'thin solid ' + subheaderColor,
-              }}>
+            <thead>
               <Th onClick={()=>this.reorder('name')}
                 active={this.state.order === 'name'}
                 reverse={this.state.reverse}
@@ -1185,7 +1276,7 @@ let IconButton = props => (
   </Chip>
 */
 let Chip = props => (
-  <div className="chip" onClick={props.onClick} style={{
+  <div className={'chip' + (props.primary ? ' primary' : '')} onClick={props.onClick} style={{
       alignItems: 'center',
       cursor: 'pointer',
       display: 'flex',
@@ -1194,7 +1285,7 @@ let Chip = props => (
       paddingLeft: '8px',
       paddingRight: '8px',
     }}>
-    {props.children}
+    <span style={{flex: '1'}}>{props.children}</span>
     <Icon style={{marginLeft: '4px'}}>{props.icon}</Icon>
   </div>
 )
@@ -1249,6 +1340,37 @@ class AddButton extends React.Component {
         }/>
       )}
     </div>
+  }
+}
+
+class PopupButton extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      open: false,
+    };
+    this.open = this.open.bind(this);
+  }
+
+  open(event) {
+    this.setState({open: true});
+    let { id, title, children } = this.props;
+    $(`<div id="${id}"/>`).dialog({
+      resizable: false,
+      title: title,
+      open(e) {
+        ReactDOM.render(<div>{children}</div>, $('#' + id)[0]);
+      }
+    }).on('dialogclose', e => {
+      ReactDOM.unmountComponentAtNode($('#' + id)[0]);
+      $('#' + id).remove();
+      this.setState({open: false});
+    });
+  }
+
+  render() {
+    return $if(!this.state.open, <IconButton icon={this.props.icon} primary onClick={this.open}/>);
   }
 }
 
@@ -1527,6 +1649,7 @@ let HeaderRow = props => (
   A space filler for flex components, Functionally a div
   <Flex/>
 */
-let Flex = props => <div style={{flex: 1}}>{props.children}</div>
+let Flex = props => <div style={{flex: 1}}>{props.children}</div>;
 
+// Finally render our component
 ReactDOM.render(<Seedbox/>, $('#root')[0]);
