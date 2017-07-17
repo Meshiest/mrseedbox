@@ -1346,7 +1346,7 @@ let Emby = props => (
       flex: '1',
     }}
     src="/mb/web/index.html"
-    allowfullscreen>
+    allowFullScreen={true}>
   </iframe>
 );
 
@@ -1357,7 +1357,7 @@ let RuTorrent = props => (
       flex: '1',
     }}
     src="/rutorrent/"
-    allowfullscreen>
+    allowFullScreen={true}>
   </iframe>
 );
 
