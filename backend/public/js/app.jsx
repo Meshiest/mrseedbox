@@ -700,7 +700,7 @@ class Torrents extends React.Component {
           });
         });
         this.setState({torrents});
-        this.updateTimeout = setTimeout(() => this.getTorrents(), 5000);
+        this.updateTimeout = setTimeout(() => this.getTorrents(), Math.max(5000, Math.min(60000, torrents.length * 1000)));
       },
       error => {
         $handleError(error);
