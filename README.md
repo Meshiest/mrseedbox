@@ -1,14 +1,18 @@
 ## Mr Seedbox
 
-### Screenshots
+Please note this is *not* my best (or even good) work. I use this repo to test weird coding habits on a larger scale.
 
-![](http://i.imgur.com/WDeD1Is.png)
-![](http://i.imgur.com/tMiGwxQ.png)
-![](http://i.imgur.com/jmW8KzM.png)
-![](http://i.imgur.com/uWYCPAm.png)
-![](http://i.imgur.com/relNlJz.png)
-![](http://i.imgur.com/s9AOqUZ.png)
-![](http://i.imgur.com/bbXlsPd.png)
+### New Screenshots
+<img src="http://i.imgur.com/DNNbwki.jpg" width="512"/><img src="http://i.imgur.com/VwU6Af7.png" width="512"/>
+<img src="http://i.imgur.com/uHzljyj.png" width="512"/><img src="http://i.imgur.com/yVUjVFE.png" width="512"/>
+<img src="http://i.imgur.com/twvgR08.png" width="512"/>
+
+### (Old) Screenshots (Branch angular-ui)
+
+<img src="http://i.imgur.com/WDeD1Is.png" width="256"/><img src="http://i.imgur.com/tMiGwxQ.png" width="256"/>
+<img src="http://i.imgur.com/jmW8KzM.png" width="256"/><img src="http://i.imgur.com/uWYCPAm.png" width="256"/>
+<img src="http://i.imgur.com/relNlJz.png" width="256"/><img src="http://i.imgur.com/s9AOqUZ.png" width="256"/>
+<img src="http://i.imgur.com/ViwNpvb.png" width="256"/>
 
 ## Install process (Still wip, sorry!):
 
@@ -35,6 +39,7 @@
 * The **first person to connect and auth will be the "owner"**
 * You will have to go through the initial emby setup at `localhost:8096`!
 * If you are migrating from the old versions, you may have to `docker build backend` before starting the containers. If that doesn't work, you should remove all containers and images associated with this app and `./start` it again
+* **Don't forget to add this to your MyAnimeList CSS Style for the best experience**: `@import url(https://gist.githubusercontent.com/Meshiest/cf3a3a4e16f5669ce7540445bf5b4cbf/raw/style.css)`
 
 ### Commands (from shell):
 
@@ -54,8 +59,14 @@
 
 ### Things You Need
 * You need docker
+* NPM/node
 
 ### Updating the Backend (this is all in the `backend` directory)
 1. Make your changes
 2. `docker build .`
 3. `./start` from the parent directory and `docker logs -f mrseedbox_backend_1` and check if there were any problems starting the container
+
+### Updating the frontend
+1. Change app.jsx
+2. `npm install --only=dev` in backend/public/js
+3. `npm test`

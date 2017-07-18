@@ -1,35 +1,136 @@
-md-sidenav {
-  fill: #737373;
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(MaterialIcons-Regular.eot); /* For IE6-8 */
+  src: local('Material Icons'),
+       local('MaterialIcons-Regular'),
+       url(MaterialIcons-Regular.woff2) format('woff2'),
+       url(MaterialIcons-Regular.woff) format('woff'),
+       url(MaterialIcons-Regular.ttf) format('truetype');
 }
 
-body, html, .bg {
-  overflow: hidden;
-  background: linear-gradient(#eee,#ccc);
-  background: -webkit-linear-gradient(#eee,#ccc);
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Support for IE. */
+  -webkit-font-feature-settings: 'liga';
+          font-feature-settings: 'liga';
 }
 
-md-sidenav ng-md-icon {
-  position: relative;
-  top: 5px;
+* {
+  margin: 0;
+  padding: 0;
 }
 
-ng-view, .page-container {
-  align-items: stretch;
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  justify-content: flex-start;
+body, .mrseedbox {
+  font-family: 'Roboto';
+  min-height: 100vh;
 }
 
-ng-view {
-  height: 100%;
+button:focus {
+  outline: none;
 }
 
-.page-container {
-  overflow-y: auto;
+button:not(.icon-button)[type="submit"] {
+  min-width: 60px;
 }
 
-.page-container > iframe {
+button {
+  align-items: center;
+  background-color: transparent;
   border: none;
-  flex-grow: 1;
+  color: #777;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin: 4px;
+  padding: 4px;
+}
+
+h2 {
+  font-weight: 400;
+}
+
+
+.chip {
+  background-color: #E0E0E0;
+  margin: 4px;
+}
+
+.chip:hover {
+  background-color: #F5F5F5;
+}
+
+.chip:active {
+  background-color: #ffffff;
+}
+
+.primary {
+  color: #fff;
+  background-color: #00897B;
+}
+
+button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.primary:hover {
+  background-color: #26A69A;
+}
+
+button:active {
+  background-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.primary:active {
+  background-color: #4DB6AC;
+}
+
+@media screen and (max-width: 600px) {
+  .toolbar-title {
+    font-size: 14px;
+  }
+}
+@media screen and (max-width: 400px) {
+  .toolbar-title {
+    display: none;
+  }
+}
+
+.input {
+  border: none;
+  border-bottom: solid 2px #CFD8DC;
+  box-sizing: border-box;
+  padding: 8px;
+}
+
+.input:focus {
+  border-bottom: solid 2px #64B5F6;
+  outline: none;
+}
+
+.input:invalid {
+  border-bottom: solid 2px #E57373;
 }
