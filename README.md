@@ -1,6 +1,6 @@
 ## Mr Seedbox
 
-Please note this is *not* my best (or even good) work. I use this repo to test weird coding habits on a larger scale.
+I use this repo to test weird coding habits on a larger scale, don't expect the code to be pretty
 
 ### New Screenshots
 <img src="http://i.imgur.com/DNNbwki.jpg" width="512"/><img src="http://i.imgur.com/VwU6Af7.png" width="512"/>
@@ -61,12 +61,12 @@ Please note this is *not* my best (or even good) work. I use this repo to test w
 * You need docker
 * NPM/node
 
-### Updating the Backend (this is all in the `backend` directory)
+### Updating the Backend (`./backend`)
 1. Make your changes
-2. `docker build .`
+2. `docker build .` 
 3. `./start` from the parent directory and `docker logs -f mrseedbox_backend_1` and check if there were any problems starting the container
 
-### Updating the frontend
+### Updating the frontend (`./backend/public/js`)
 1. Change app.jsx
 2. `npm install --only=dev` in backend/public/js
 3. `npm test`
