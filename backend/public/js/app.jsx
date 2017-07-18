@@ -1002,7 +1002,7 @@ let User = props => {
         padding: '8px',
       }}>
       <div style={{display: 'flex'}}>
-        <div style={{flex: '1'}}>
+        <div style={{width: '300px'}}>
           <h2 style={{
               fontWeight: '400',
             }}>
@@ -1014,6 +1014,25 @@ let User = props => {
           <subhead style={{color: subheaderColor, fontSize: '12px'}}>
             <Overflow>{user.email}</Overflow>
           </subhead>
+        </div>
+        <div style={{
+            flex: '1',
+            marginLeft: '8px',
+            marginTop: '4px',
+          }}>
+          <div style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+            }}>
+            Online {$ago(user.last_online)}
+          </div>
+          <div style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              fontSize: '10px',
+            }}>
+            {user.subscriptions} Subscriptions
+          </div>
         </div>
         {$if(PERMISSIONS.EDIT_USER <= user_level || user.id === user_id,
           <div style={{display: 'flex'}}>
