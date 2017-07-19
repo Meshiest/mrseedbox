@@ -35,7 +35,6 @@ I use this repo to test weird coding habits on a larger scale, don't expect the 
 * `cp docker-compose.yml.default docker-compose.yml`
 * Edit your docker-compose.yml and common.env files (put google api client and secret in)
 * Generate a SSL Cert: `./setup`
-* `cp settings.json transmission/config/settings.json` (and make neccessary dirs)
 * The **first person to connect and auth will be the "owner"**
 * You will have to go through the initial emby setup at `localhost:8096`!
 * If you are migrating from the old versions, you may have to `docker build backend` before starting the containers. If that doesn't work, you should remove all containers and images associated with this app and `./start` it again
