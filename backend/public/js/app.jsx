@@ -171,7 +171,7 @@ function $ago(time) {
   if(delta < 60 * 60 * 24 * 30)
     return Math.round(delta/60/60/24/7) + ' Week' + (Math.round(delta/60/60/24/7)!=1?'s':'') + ' Ago';
 
-  let date = new Date(time);
+  let date = new Date(time * 1000);
   let month = [
     'January', 'February', 'March', 'April', 'May',
     'June', 'July', 'August', 'September', 'October',
