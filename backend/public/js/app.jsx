@@ -416,7 +416,10 @@ class Dashboard extends React.Component {
           position: 'absolute',
           right: '0',
           top: '48px',
-        }} onClick={() => $.ajax('/logout').then(e=>location.reload(), e=>location.reload())}/>
+        }} onClick={() => {
+          localStorage.saveUsername = false;
+          $.ajax('/logout').then(e=>location.reload(), e=>location.reload());
+        }}/>
       </div>
     );
   }
@@ -611,17 +614,22 @@ class Animelist extends React.Component {
 
     this.state = {
       username: localStorage.MALName || '',
-      ready: false,
+      ready: localStorage.saveUsername === "true",
+      saveUsername: localStorage.saveUsername === "true",
     };
   }
 
   render() {
-    return this.state.ready ? (
-      <iframe style={{
-          border: 'none',
-          height: '300px',
-        }}
-        src={'https://myanimelist.net/animelist/' + this.state.username}/>
+    let { username, ready, saveUsername } = this.state;
+
+    return ready ? (
+      <div>
+        <iframe style={{
+            border: 'none',
+            height: '300px',
+          }}
+          src={'https://myanimelist.net/animelist/' + username}/>
+      </div>
     ) : (
       <div style={{
           alignItems: 'center',
@@ -637,7 +645,7 @@ class Animelist extends React.Component {
           }}>
           <Input name="username"
             placeholder="MAL Username"
-            defaultValue={this.state.username}/>
+            defaultValue={username}/>
         </form>
         <a style={{
             fontSize: '12px',
@@ -646,8 +654,33 @@ class Animelist extends React.Component {
           }}
           target="_blank" 
           href="https://gist.github.com/Meshiest/cf3a3a4e16f5669ce7540445bf5b4cbf">
-          It's recommended to use this style
+          It's recommended to use this list style
         </a>
+        <div style={{
+            alignItems: 'center',
+            alignSelf: 'stretch',
+            color: '#999',
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            marginTop: '8px',
+          }}
+          onClick={() => {
+            this.setState({saveUsername: !saveUsername});
+            localStorage.saveUsername = !saveUsername;
+          }}>
+          <span style={{
+            fontSize: '10px',
+            marginRight: '4px',
+          }}>
+            Save Username
+          </span>
+          <i className="material-icons" style={{
+            fontSize: '16px',
+          }}>
+            {saveUsername ? 'check_box' : 'check_box_outline_blank'}
+          </i>
+        </div>
       </div>
     );
   }
