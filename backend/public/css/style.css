@@ -134,3 +134,13 @@ button:active {
 .input:invalid {
   border-bottom: solid 2px #E57373;
 }
+
+.listener:hover {
+  background-color: #f5f5f5;
+}
+
+@media screen and (max-width: 800px) {
+  .list-item {
+    flex-direction: column;
+  }
+}

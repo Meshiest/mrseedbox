@@ -1034,7 +1034,7 @@ let User = props => {
         marginTop: '16px',
         padding: '8px',
       }}>
-      <div style={{display: 'flex'}}>
+      <div style={{display: 'flex'}} className="list-item">
         <div style={{width: '300px'}}>
           <h2 style={{
               fontWeight: '400',
@@ -1049,39 +1049,51 @@ let User = props => {
           </subhead>
         </div>
         <div style={{
-            flex: '1',
-            marginLeft: '8px',
-            marginTop: '4px',
-          }}>
+          display: 'flex',
+          alignItems: 'center',
+          flex: '1'
+        }}>
           <div style={{
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-            }}>
-            Online {$ago(user.last_online)}
-          </div>
-          <div style={{
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              fontSize: '10px',
-            }}>
-            {user.subscriptions} Subscriptions
+              flex: '1',
+              marginLeft: '8px',
+              marginTop: '4px',
+            }} className="time-data">
+            <div style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+              }}>
+              Online {$ago(user.last_online)}
+            </div>
+            <div style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                fontSize: '10px',
+              }}>
+              {user.subscriptions} Subscriptions
+            </div>
           </div>
         </div>
-        {$if(PERMISSIONS.EDIT_USER <= user_level || user.id === user_id,
-          <div style={{display: 'flex'}}>
-            <IconButton icon="create" onClick={props.showUserModal(false, user)}/>
-          </div>
-        )}
-        {$level(PERMISSIONS.EDIT_USER,
-          <div style={{display: 'flex'}}>
-            <IconButton icon="delete" onClick={e => {
-              $confirmModal('Delete User', `Are you sure you want to delete user "${user.name}"?`)
-                .then(() => {
-                  $.ajax({method: 'delete', url: '/api/users/' + user.id}).then(props.refresh, $handleError);
-                });
-            }}/>
-          </div>
-        )}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+        }}>
+          {$if(PERMISSIONS.EDIT_USER <= user_level || user.id === user_id,
+            <div style={{display: 'flex'}}>
+              <IconButton icon="create" onClick={props.showUserModal(false, user)}/>
+            </div>
+          )}
+          {$level(PERMISSIONS.EDIT_USER,
+            <div style={{display: 'flex'}}>
+              <IconButton icon="delete" onClick={e => {
+                $confirmModal('Delete User', `Are you sure you want to delete user "${user.name}"?`)
+                  .then(() => {
+                    $.ajax({method: 'delete', url: '/api/users/' + user.id}).then(props.refresh, $handleError);
+                  });
+              }}/>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1327,67 +1339,90 @@ let Feed = props => {
       </div>
       <div>
         {$filter(props.listeners, l => l.feed_id == feed.id ).map(l =>
-          <div style={{
-              alignItems: 'center',
+          <div className="listener list-item" style={{
               display: 'flex',
             }}>
-            <IconButton icon={props.subscriptions[l.id] ? 'star' : 'star_border'}
-              onClick={e =>
-                $.ajax({
-                  url: 'api/user/listeners' + (props.subscriptions[l.id] ? '/' + l.id : ''),
-                  method: (props.subscriptions[l.id] ? 'delete' : 'post'),
-                  data: {listener_id: l.id},
-                }).then(props.refresh, $handleError)
-              }/>
             <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                width: '300px',
-                marginLeft: '8px',
-                marginTop: '4px',
-              }}>
-              <Overflow height='15px'>{l.name}</Overflow>
-              <Overflow>
-                <span style={{
-                  fontFamily: 'monospace',
-                  fontSize: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              flex: '1',
+            }}>
+              <IconButton icon={props.subscriptions[l.id] ? 'star' : 'star_border'}
+                onClick={e =>
+                  $.ajax({
+                    url: 'api/user/listeners' + (props.subscriptions[l.id] ? '/' + l.id : ''),
+                    method: (props.subscriptions[l.id] ? 'delete' : 'post'),
+                    data: {listener_id: l.id},
+                  }).then(props.refresh, $handleError)
+                }/>
+              <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  width: '300px',
+                  marginLeft: '8px',
+                  marginTop: '4px',
+                }}>
+                <Overflow height='15px'>{l.name}</Overflow>
+                <Overflow>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    fontSize: '10px',
+                    }}>
+                    /{l.pattern}/i
+                  </span>
+                </Overflow>
+              </div>
+            </div>
+            <div>
+              <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1',
+                  marginLeft: '8px',
+                  marginTop: '4px',
+                }} className="time-data">
+                <div style={{
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
                   }}>
-                  /{l.pattern}/i
-                </span>
-              </Overflow>
+                  {$ago(l.last_update)}
+                </div>
+                <div style={{
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    fontSize: '10px',
+                  }}>
+                  {l.subscribers} Subscribers
+                </div>
+              </div>
             </div>
             <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                flex: '1',
-                marginLeft: '8px',
-                marginTop: '4px',
-              }}>
-              <div style={{
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                }}>
-                {$ago(l.last_update)}
-              </div>
-              <div style={{
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  fontSize: '10px',
-                }}>
-                {l.subscribers} Subscribers
-              </div>
-            </div>
-            {$level(PERMISSIONS.EDIT_LISTENER,
-              <div style={{display: 'flex'}}>
-                <IconButton icon="create" onClick={props.showListenerModal(false, feed, l)}/>
-                <IconButton icon="delete" onClick={e => {
-                  $confirmModal('Delete Listener', `Are you sure you want to delete listener "${l.name}"?`)
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+            }}>
+              {$level(PERMISSIONS.EDIT_LISTENER,
+                <div style={{display: 'flex'}}>
+                  <IconButton icon="replay" onClick={e => $confirmModal('Retry Listener', `Are you sure you want to retry listener "${l.name}"?`)
                     .then(() => {
-                      $.ajax({method: 'delete', url: '/api/listeners/' + l.id}).then(props.refresh, $handleError);
-                    });
-                }}/>
-              </div>
-            )}
+                      $.ajax({method: 'post', url: '/api/listeners/' + l.id + '/retry'}).then(props.refresh, $handleError);
+                    })}/>
+                  {$level(PERMISSIONS.EDIT_FEED,
+                    <IconButton icon="sort" onClick={e => $confirmModal('Sort Listener', `Are you sure you want to sort listener "${l.name}"?`)
+                      .then(() => {
+                        $.ajax({method: 'post', url: '/api/listeners/' + l.id + '/sort'}).then(props.refresh, $handleError);
+                      })}/>
+                  )}
+                  <IconButton icon="create" onClick={props.showListenerModal(false, feed, l)}/>
+                  <IconButton icon="delete" onClick={e => {
+                    $confirmModal('Delete Listener', `Are you sure you want to delete listener "${l.name}"?`)
+                      .then(() => {
+                        $.ajax({method: 'delete', url: '/api/listeners/' + l.id}).then(props.refresh, $handleError);
+                      });
+                  }}/>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -1756,9 +1791,9 @@ let Td = props => (
       let width = $(e.target).width();
       let maxWidth = $(e.target).parent().width();
       if(width <= maxWidth)
-        return;
+         return;
       $(e.target).css({
-        marginLeft: '-'+(width-maxWidth)+'px',
+        marginLeft: '-'+(maxWidth-width)+'px',
       })
     }} onMouseLeave={e => {
       $(e.target).css({
@@ -1818,6 +1853,8 @@ let Progress = props => {
         backgroundColor: subheaderColor,
         position: 'relative',
         height: '20px',
+        marginLeft: '0',
+        left: '0',
         width: props.width || '80px',
       }}>
       <div style={{
