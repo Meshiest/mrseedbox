@@ -1080,6 +1080,39 @@ class Server < Sinatra::Base
     end
   end
 
+  post '/api/listeners/:id/retry' do
+    user_id = session[:user_id]
+    content_type :json
+    target_id = params[:id]
+    if target_id
+      target_id = params[:id].to_i rescue nil
+    end
+    unless hasPerm(user_id, :EDIT_FEED)
+      status 401
+      {
+        status: 401,
+        message: "Not Authorized",
+      }.to_json
+    else
+      updateUserStatus user_id
+      begin
+        mysql.query("UPDATE listeners SET last_update=#{0} WHERE id=#{target_id}")
+      rescue
+        status 404
+        return {
+          status: 404,
+          message: "Listener Not Found",
+        }.to_json
+      end
+
+      status 200
+      {
+        status: 200,
+        message: "OK",
+      }.to_json
+    end
+  end
+
   delete '/api/listeners/:id' do
     user_id = session[:user_id]
     content_type :json
