@@ -1345,7 +1345,6 @@ let Feed = props => {
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              flex: '1',
             }}>
               <IconButton icon={props.subscriptions[l.id] ? 'star' : 'star_border'}
                 onClick={e =>
@@ -1373,7 +1372,11 @@ let Feed = props => {
                 </Overflow>
               </div>
             </div>
-            <div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              flex: '1',
+            }}>
               <div style={{
                   display: 'flex',
                   flexDirection: 'column',
