@@ -36,7 +36,9 @@ I use this repo to test weird coding habits on a larger scale, don't expect the 
 * Edit your docker-compose.yml and common.env files (put google api client and secret in)
   * Make sure you change EXAMPLE.COM if you're using the letsencrypt dockerfile
 * Generate a SSL Cert: `./setup`
-  * If your are using LetsEncrypt, you can use `certbot certonly --standalone`
+  * If you are using LetsEncrypt, you can use `certbot certonly --standalone`
+  * If you are using LetsEncrypt, make sure you generate a dhparam:
+    * `sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048`
 * The **first person to connect and auth will be the "owner"**
 * You will have to go through the initial emby setup at `localhost:8096`!
 * If you are migrating from the old versions, you may have to `docker build backend` before starting the containers. If that doesn't work, you should remove all containers and images associated with this app and `./start` it again
