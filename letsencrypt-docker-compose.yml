@@ -1,0 +1,74 @@
+db:
+  image: mysql
+  restart: always
+  volumes:
+    - ./mysql:/var/lib/mysql
+  env_file: 
+    - ./common.env
+  expose:
+    - "3306"
+
+emby:
+  image: emby/embyserver
+  restart: always
+  volumes: 
+    - ./emby/config:/config
+    - ./rtorrent/downloads:/media/torrents
+  environment:
+    PGID: 1000 # get 'gid' from `id <yourusername>`
+    PUID: 1000 # get 'uid' from `id <yourusername>`
+  ports:
+    - "8096:8096"
+    - "7359:7359/udp"
+    - "1900:1900/udp"
+
+rtorrent:
+  image: linuxserver/rutorrent
+  restart: always
+  volumes:
+    - ./rtorrent/config:/config
+    - ./rtorrent/downloads:/downloads
+  environment:
+    PGID: 1000 # get 'gid' from `id <yourusername>`
+    PUID: 1000 # get 'uid' from `id <yourusername>`
+  ports:
+    - "51413:51413" # Incoming Connections
+    - "6881:6881/udp" # Distributed Hash Table
+
+backend:
+  build: "./backend"
+  command: "rackup"
+  restart: always
+  env_file: 
+    - ./common.env
+  volumes:
+    - ./backend:/app
+    - ./etc/letsencrypt/live/EXAMPLE.COM/cert.pem:/app/cert.crt # Please change EXAMPLE.COM to your domain
+    - ./etc/letsencrypt/live/EXAMPLE.COM/privkey.pem:/app/key.pem # Please change EXAMPLE.COM to your domain
+    - ./rtorrent/downloads:/downloads
+  links:
+    - db:mysql
+    - rtorrent:rtorrent
+    - emby:emby
+    - redis:redis
+
+# how easy :)
+redis:
+  image: redis
+  restart: always
+
+
+nginx:
+  image: nginx
+  restart: always
+  volumes:
+    - ./letsencrypt-nginx.conf:/etc/nginx/conf.d/default.conf
+    - /etc/letsencrypt/live/EXAMPLE.COM/cert.pem:/etc/ssl/certs/cert.pem # Please change EXAMPLE.COM to your domain
+    - /etc/letsencrypt/live/EXAMPLE.COM/fullchain.pem:/etc/ssl/certs/fullchain.pem # Please change EXAMPLE.COM to your domain
+    - /etc/letsencrypt/live/EXAMPLE.COM/privkey.pem:/etc/ssl/private/privkey.pem # Please change EXAMPLE.COM to your domain
+    - /etc/ssl/certs/dhparam.pem:/etc/ssl/certs/dhparam.pem # Please change EXAMPLE.COM to your domain
+  ports:
+    - "443:443"
+  links:
+    - emby:emby
+    - backend:backend

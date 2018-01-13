@@ -60,11 +60,11 @@ nginx:
   image: nginx
   restart: always
   volumes:
-   - ./nginx.conf:/etc/nginx/conf.d/default.conf
-   - ./backend/cert.crt:/etc/ssl/certs/cert.crt
-   - ./backend/key.pem:/etc/ssl/private/key.pem
+    - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    - ./backend/cert.crt:/etc/ssl/certs/cert.crt
+    - ./backend/key.pem:/etc/ssl/private/key.pem
   ports:
-   - "443:443"
+    - "443:443"
   links:
     - emby:emby
     - backend:backend
