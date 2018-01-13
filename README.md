@@ -42,7 +42,11 @@ I use this repo to test weird coding habits on a larger scale, don't expect the 
 * The **first person to connect and auth will be the "owner"**
 * You will have to go through the initial emby setup at `localhost:8096`!
 * If you are migrating from the old versions, you may have to `docker build backend` before starting the containers. If that doesn't work, you should remove all containers and images associated with this app and `./start` it again
-* **Don't forget to add this to your MyAnimeList CSS Style for the best experience**: `@import url(https://gist.githubusercontent.com/Meshiest/cf3a3a4e16f5669ce7540445bf5b4cbf/raw/style.css)`
+* **Don't forget to add this to your MyAnimeList Custom CSS for the best experience**: `@import url(https://gist.githubusercontent.com/Meshiest/cf3a3a4e16f5669ce7540445bf5b4cbf/raw/style.css)`
+
+If you do use the above LetsEncrypt instructions, you should get some nice A+ SSL like this:
+
+![](https://i.imgur.com/ZVDQet3.png)
 
 ### Commands (from shell):
 
