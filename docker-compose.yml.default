@@ -9,7 +9,7 @@ db:
     - "3306"
 
 emby:
-  image: dperson/emby
+  image: emby/embyserver
   restart: always
   volumes: 
     - ./emby/config:/config
