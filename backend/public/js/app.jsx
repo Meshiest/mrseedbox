@@ -1361,7 +1361,7 @@ let Feed = props => {
                   marginLeft: '8px',
                   marginTop: '4px',
                 }}>
-                <Overflow height='15px'>{l.name}</Overflow>
+                <Overflow height='18px'>{l.name}</Overflow>
                 <Overflow>
                   <span style={{
                     fontFamily: 'monospace',
@@ -1820,6 +1820,7 @@ let Overflow = props => (
     display: 'flex',
     height: props.height || '20px',
     overflow: 'hidden',
+    lineHeight: '1',
     position: 'relative',
     textOverflow: 'elipsis',
     whiteSpace: 'nowrap',
