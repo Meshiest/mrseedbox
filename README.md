@@ -50,7 +50,7 @@ If you do use the above LetsEncrypt instructions, you should get some nice A+ SS
 
 ### Commands (from shell):
 
-* `./start` - should start and build containers
+* `./start` - start, build, and update containers. If you need to update emby, you can run this
 * `docker-compose up -d` - same as above
 * `./stop` - should stop containers
 * `docker-compose kill ; docker-compose rm -f` - same as above
