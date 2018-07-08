@@ -3,16 +3,11 @@
 I use this repo to test weird coding habits on a larger scale, don't expect the code to be pretty
 
 ### New Screenshots
-<img src="http://i.imgur.com/DNNbwki.jpg" width="512"/><img src="http://i.imgur.com/VwU6Af7.png" width="512"/>
-<img src="http://i.imgur.com/uHzljyj.png" width="512"/><img src="http://i.imgur.com/yVUjVFE.png" width="512"/>
-<img src="http://i.imgur.com/twvgR08.png" width="512"/>
-
-### (Old) Screenshots (Branch angular-ui)
-
-<img src="http://i.imgur.com/WDeD1Is.png" width="256"/><img src="http://i.imgur.com/tMiGwxQ.png" width="256"/>
-<img src="http://i.imgur.com/jmW8KzM.png" width="256"/><img src="http://i.imgur.com/uWYCPAm.png" width="256"/>
-<img src="http://i.imgur.com/relNlJz.png" width="256"/><img src="http://i.imgur.com/s9AOqUZ.png" width="256"/>
-<img src="http://i.imgur.com/ViwNpvb.png" width="256"/>
+<img src="https://i.imgur.com/rcrpdfS.png" width="512"/>
+<img src="https://i.imgur.com/DVS0ivY.png" width="512"/>
+<img src="https://i.imgur.com/yhPPTDj.png" width="512"/>
+<img src="https://i.imgur.com/dHCrbq6.png" width="512"/>
+<img src="https://i.imgur.com/Dg4yvZs.png" width="512"/>
 
 ## Install process (Still wip, sorry!):
 
