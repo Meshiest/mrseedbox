@@ -5,16 +5,11 @@ Please note that piracy is ILLEGAL and you should always pay for the all media y
 I use this repo to test weird coding habits on a larger scale, don't expect the code to be pretty
 
 ### New Screenshots
-<img src="http://i.imgur.com/DNNbwki.jpg" width="512"/><img src="http://i.imgur.com/VwU6Af7.png" width="512"/>
-<img src="http://i.imgur.com/uHzljyj.png" width="512"/><img src="http://i.imgur.com/yVUjVFE.png" width="512"/>
-<img src="http://i.imgur.com/twvgR08.png" width="512"/>
-
-### (Old) Screenshots (Branch angular-ui)
-
-<img src="http://i.imgur.com/WDeD1Is.png" width="256"/><img src="http://i.imgur.com/tMiGwxQ.png" width="256"/>
-<img src="http://i.imgur.com/jmW8KzM.png" width="256"/><img src="http://i.imgur.com/uWYCPAm.png" width="256"/>
-<img src="http://i.imgur.com/relNlJz.png" width="256"/><img src="http://i.imgur.com/s9AOqUZ.png" width="256"/>
-<img src="http://i.imgur.com/ViwNpvb.png" width="256"/>
+<img src="https://i.imgur.com/rcrpdfS.png" width="512"/>
+<img src="https://i.imgur.com/DVS0ivY.png" width="512"/>
+<img src="https://i.imgur.com/yhPPTDj.png" width="512"/>
+<img src="https://i.imgur.com/dHCrbq6.png" width="512"/>
+<img src="https://i.imgur.com/Dg4yvZs.png" width="512"/>
 
 ## Install process (Still wip, sorry!):
 
@@ -34,17 +29,25 @@ I use this repo to test weird coding habits on a larger scale, don't expect the 
 * `git clone https://github.com/Meshiest/mrseedbox.git`
 * `cd mrseedbox`
 * `cp common.env.default common.env`
-* `cp docker-compose.yml.default docker-compose.yml`
+* `cp docker-compose.yml.default docker-compose.yml` OR `cp letsencrypt-docker-compose.yml docker-compose.yml` for letsencrypt
 * Edit your docker-compose.yml and common.env files (put google api client and secret in)
+  * Make sure you change EXAMPLE.COM if you're using the letsencrypt dockerfile
 * Generate a SSL Cert: `./setup`
+  * If you are using LetsEncrypt, you can use `certbot certonly --standalone`
+  * If you are using LetsEncrypt, make sure you generate a dhparam:
+    * `sudo openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048`
 * The **first person to connect and auth will be the "owner"**
 * You will have to go through the initial emby setup at `localhost:8096`!
 * If you are migrating from the old versions, you may have to `docker build backend` before starting the containers. If that doesn't work, you should remove all containers and images associated with this app and `./start` it again
-* **Don't forget to add this to your MyAnimeList CSS Style for the best experience**: `@import url(https://gist.githubusercontent.com/Meshiest/cf3a3a4e16f5669ce7540445bf5b4cbf/raw/style.css)`
+* **Don't forget to add this to your MyAnimeList Custom CSS for the best experience**: `@import url(https://gist.githubusercontent.com/Meshiest/cf3a3a4e16f5669ce7540445bf5b4cbf/raw/style.css)`
+
+If you do use the above LetsEncrypt instructions, you should get some nice A+ SSL like this:
+
+![](https://i.imgur.com/ZVDQet3.png)
 
 ### Commands (from shell):
 
-* `./start` - should start and build containers
+* `./start` - start, build, and update containers. If you need to update emby, you can run this
 * `docker-compose up -d` - same as above
 * `./stop` - should stop containers
 * `docker-compose kill ; docker-compose rm -f` - same as above

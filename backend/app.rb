@@ -313,6 +313,7 @@ class Server < Sinatra::Base
         path = "http://#{request.path.gsub(/^\/rutorrent\//,'rtorrent/')}"
         #build http party url
         mapped_headers = get_headers
+        mapped_headers['Accept-Encoding'] = 'identity'
 
         response = HTTParty.get(
           path,
