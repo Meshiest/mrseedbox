@@ -1,3 +1,5 @@
+Please note that piracy is ILLEGAL and you should always pay for the all media you use!
+
 ## Mr Seedbox
 
 I use this repo to test weird coding habits on a larger scale, don't expect the code to be pretty
