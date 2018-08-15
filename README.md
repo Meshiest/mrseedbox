@@ -1,4 +1,4 @@
-**Disclaimer**: This project or its owner will not take any responsibility for any illegal use.
+**Disclaimer**: Neither this project nor its owner will take any responsibility for any illegal use.
 
 ## Mr Seedbox
 
