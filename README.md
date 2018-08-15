@@ -1,4 +1,4 @@
-Please note that piracy is ILLEGAL and you should always pay for the all media you use!
+**Disclaimer**: This project or its owner will not take any responsibility for any illegal use.
 
 ## Mr Seedbox
 
